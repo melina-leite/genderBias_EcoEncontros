@@ -155,25 +155,37 @@ ggplot(data, aes(x=brazilian, y=audience_n, fill=gender)) +
 
 Negative binomial
 
+```{r}
+data$affirm_action <- ifelse(data$year<2018,"before", "after")
+```
+
 
 ```{r echo=TRUE}
 mg0 <- glm.nb(audience_n~ 1, data=data)
 mg1 <- glm.nb(audience_n~ gender, data=data)
 mg2 <- glm.nb(audience_n~ position_cat, data=data)
 mg3 <- glm.nb(audience_n~ year, data=data)
+#mg3b <- glm.nb(audience_n~ affirm_action, data=data)
 
 mg4 <- glm.nb(audience_n~ gender + position_cat, data=data)
 mg5 <- glm.nb(audience_n~ gender + year, data=data)
+##mg5b <- glm.nb(audience_n~ gender + affirm_action, data=data)
 mg6 <- glm.nb(audience_n~ year + position_cat, data=data)
+#mg6b <- glm.nb(audience_n~ affirm_action + position_cat, data=data)
 
 mg7 <- glm.nb(audience_n~ gender*position_cat, data=data)
 mg8 <- glm.nb(audience_n~ gender*year, data=data)
+#mg8b <- glm.nb(audience_n~ gender*affirm_action, data=data)
 mg9 <- glm.nb(audience_n~ year*position_cat, data=data)
+#mg9b <- glm.nb(audience_n~ affirm_action*position_cat, data=data)
 
 mg10 <- glm.nb(audience_n~ gender*position_cat*year, data=data)
+#mg10b <- glm.nb(audience_n~ gender*position_cat*affirm_action, data=data)
 
-AICtab(mg2, mg0,mg1, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10)
+AICtab(mg2, mg0,mg1, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10),
+      # mg3b,mg5b,mg6b,mg8b,mg9b,mg10b)
 ```
+
 
 ## Residual diagnostic
 

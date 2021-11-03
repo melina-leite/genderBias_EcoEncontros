@@ -346,6 +346,14 @@ plot(simulateResiduals(modc5))
 plot(simulateResiduals(modc3))   
 ```
 
+## Comparing both models - controling and not controling
+
+```{r}
+AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7,
+       modc0,modc1,modc2,modc3,modc4,modc5,modc6,modc7, base=T, weights=T)
+```
+
+
 
 ## Models results
 
@@ -375,4 +383,59 @@ myc3 <- ggpredict(modc3, terms=c("position_cat", "ratioFcat[1]"))
 plot(myc3) +
   geom_hline(yintercept = 0.5, linetype="dashed")
 ```
+
+<!-- # Efficiency of affirmataive actions for professors -->
+
+<!-- ```{r} -->
+<!-- data.prof <- data %>% filter(position_cat == "professor") -->
+<!-- ``` -->
+
+<!-- Model before affirmative action (2018) -->
+<!-- ```{r} -->
+<!-- data.prof.before <- data.prof %>% filter(affirm_action =="before") -->
+<!-- data.prof.after <- data.prof %>% filter(affirm_action =="after") -->
+
+<!-- mbefore <- glm(fem ~ year, family=binomial, data= data.prof.before) -->
+<!-- mbefore.null <- glm(fem ~ 1, family=binomial, data= data.prof.before) -->
+<!-- AICctab(mbefore,mbefore.null) -->
+
+<!-- mafter <- glm(fem ~ year, family=binomial, data= data.prof.after) -->
+<!-- mafter.null <- glm(fem ~ 1, family=binomial, data= data.prof.after) -->
+<!-- AICctab(mafter,mafter.null) -->
+
+<!-- summary(mbefore) -->
+<!-- summary(mafter) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- nulo <- data.frame(intercept = rep(c(arm::invlogit(coef(mbefore.null)), -->
+<!--               arm::invlogit(coef(mafter.null))), c(10,2)), -->
+<!--             year=rep(2008:2019), -->
+<!--             affirm_action=rep(c("before", "after"), c(10,2))) -->
+
+<!-- ggplot(nulo, aes(y=intercept,x=year,col=affirm_action))+ geom_line() + -->
+<!--     ylim(0,0.8) + -->
+<!--       geom_hline(yintercept = 0.5, linetype="dashed", col="gray")+ -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- mbef <- ggpredict(mbefore, terms=c("year")) -->
+<!-- plot(mbef) + -->
+<!--   geom_hline(yintercept = 0.5, linetype="dashed") -->
+
+<!-- maft <- ggpredict(mafter, terms=c("year")) -->
+<!-- plot(maft) + -->
+<!--   geom_hline(yintercept = 0.5, linetype="dashed") -->
+
+
+<!-- bind_rows(list(before = as.data.frame(mbef), after=as.data.frame(maft)),  -->
+<!--           .id="time") %>% -->
+<!--   ggplot(aes(x=x, y=predicted, col=time))+ geom_line() + -->
+<!--   geom_hline(yintercept = 0.5, linetype="dashed", col="gray")+ -->
+<!--   geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=0.3, col="white")+ -->
+<!--   ylim(0,0.8) -->
+
+<!-- ``` -->
 

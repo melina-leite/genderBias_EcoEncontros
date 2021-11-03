@@ -1,0 +1,378 @@
+---
+title: "Gender bias in speakers and career position"
+author: "Melina Leite, Júlia Barreto & Isabella Romitelli"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+  pdf_document:
+    highlight: tango
+    toc: yes
+---
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+theme_set(theme_cowplot())
+library(janitor); library(lubridate)
+library(DHARMa); library(ggeffects)
+library(bbmle); library(MASS)
+library(hnp); library(performance)
+
+
+opts_chunk$set(fig.align = 'center', warning = FALSE, message = FALSE, error = FALSE, echo=T, cache=F)
+options(formatR.arrow = TRUE, width = 90, help_type = "html")
+```
+
+# Data
+
+## EcoEncontros Seminar talks
+
+Talks from EcoEncontros Seminar series at the Graduate Program of Ecology in the University of São Paulo (PPGE-USP), Brazil
+
+See file `metadata.txt`, in folder `data` for more description and detail of the dataset.
+```{r}
+data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
+                   header=T, as.is=T)
+data$date <- dmy(data$date)
+data$year <- year(data$date) 
+#skimr::skim(data)
+```
+
+Excluding special events as round tables and discussions not related to a project or study presented by someone.
+
+```{r}
+IDs <- c(154, 250, 211, 289)
+data <- data %>% filter(!id %in% IDs)
+```
+
+For this specific analysis, excluding speakers that are not in academia ("others"), and keeping undergraduate students, MD and PhD in the group student. postdoc, professor or researcher*.
+
+*Researchers are included in the professor categorical position (column `position_cat`) because all of them come from research institutions.
+
+```{r}
+data <- data %>% filter(position_cat != "others")
+data$position_cat <- fct_relevel(data$position_cat, "student", 
+                                 "postdoc","professor")
+```
+
+Creating dummy column to indicate if the speaker is a female (1) or not (0)
+```{r}
+data$fem <- 1
+data$fem[data$gender == "M"] <- 0 
+```
+
+```{r}
+head(data)
+```
+
+
+## Population data from PPGE-USP from 2008-2019
+
+Number of students, postdocs and professors in the PPGE-USP per gender and year.
+
+```{r}
+pop <- read.table("data/pop_PPGE_2008-2019.csv", sep=",",
+                   header=T, as.is=T)
+kable(pop)
+```
+
+
+
+# Data description
+
+## Speakers data
+Proportion and number of male and female speakers per academic position.
+
+```{r}
+data %>% tabyl(position_cat, gender) %>% adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 0) %>%
+  adorn_ns() %>%
+  kable(caption="Proportion and number (in parenthesis) of females (F) and males (M) per academic position category.")
+```
+
+```{r}
+n.y <- data %>% tabyl(position_cat, gender)
+ggplot(data, aes(x=position_cat, fill=gender)) + geom_bar() + 
+  ylab("Number of speakers") + xlab("") +
+   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
+  scale_color_discrete(name="Gênero") +
+  theme(text = element_text(size=18),
+    axis.text.x = element_text(size=16)) +
+  annotate("text", x=1:3, y=n.y$M+n.y$F/2, size=5,
+           label = c("52%", "43%","24%"))
+
+ggsave("figures/numberSpeakers_position.jpeg", units="in", width=7, height=4.5, dpi=300)
+```
+
+
+Variation in time.
+
+```{r, echo=F}
+prop.y <- data %>% tabyl(year,gender) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 0) 
+n.y <- data %>% tabyl(year,gender)
+
+ggplot(data, aes(x=as.factor(year), fill=gender)) + geom_bar()  +
+  ylab("Number of speakers") + xlab("") +
+   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
+  theme(text=element_text(size=18),
+    axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
+  annotate("text", x=1:12, y=n.y$M+n.y$F/2,size=5,
+           label = prop.y$F)
+
+ggsave("figures/numberSpeakers_year.jpeg", units="in", width=11, height=7, dpi=300)
+```
+
+
+### Origin of the speakers
+
+
+
+```{r, echo=F}
+origin <- paste(data$department, data$institute,data$university)
+eco.ib <- sort(table(origin), decreasing = T)[1]
+todo.ib <- length(grep("IB USP", origin, value=T))
+```
+
+There were `r sort(table(origin), decreasing = T)[1]` (`r round(eco.ib*100/dim(data)[1])`%) talks given by people from the PPGE population.
+
+Including talks from the Institute of Biosciences, USP, there were `r todo.ib` (`r round(todo.ib*100/dim(data)[1])`%).
+
+## PPGE-USP population data 
+
+```{r echo=FALSE}
+pop2 <- pop %>%  
+  pivot_longer(2:7, names_to=c("category","gender"), values_to="N",
+               names_sep = "_") %>%
+  pivot_wider(names_from = "gender", values_from="N") %>%
+  mutate(propFtotal = total_F/(total_F+total_M),
+         ratioFtotal = total_F/total_M,
+         propFcat = F/(F+M),
+         ratioFcat = F/M) %>%
+  dplyr::select(year, category, total_F, total_M, propFtotal,
+                ratioFtotal,F,M, propFcat, ratioFcat)
+```
+
+PPGE-USP population size by gender in time
+
+```{r, echo=F}
+pop %>% dplyr::select(year,total_F,total_M) %>% pivot_longer(2:3, names_to = "gender", values_to = "N") %>%
+ggplot(aes(x=as.factor(year), y=N, fill=gender)) + geom_col() +
+   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863"),
+                     label=c("F", "M")) +
+  xlab("")+ ylab("Population size")+
+  theme(text=element_text(size=18),
+    axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
+  annotate("text", x=1:12, y= pop$total_M + pop$total_F/2, size=5,
+           label = paste0(round(pop$total_F*100/(pop$total_M+pop$total_F),0),"%"))
+ggsave("figures/popSize_year.jpeg", units="in", width=11, height=7, dpi=300)
+```
+
+PPGE-USP population size by gender and position and year
+```{r, fig.height=8}
+pop2 %>% mutate(ytext = M + F/2) %>%
+  pivot_longer(7:8, names_to = "gender", values_to = "N") %>%
+  ggplot(aes(x=as.factor(year),y=N, fill=gender)) + geom_col() + 
+  facet_wrap(~category, scales="free",ncol=1)+
+  ylab("N") + xlab("") +
+   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
+  theme(text = element_text(size=18),
+    axis.text.x = element_text(size=16, angle=45, hjust=1)) +
+  geom_text(aes(x=as.factor(year), y=ytext,
+                label=paste0(round(propFcat*100), "%") ))
+
+ggsave("figures/popSize_positionYear.jpeg", units="in", width=7, height=14, dpi=300)
+```
+
+
+## Comparing proportions of female speakers in the seminar and in the population by position.
+
+```{r, fig.cap="Relationship between the proportion of females in the PPGE population in each category of academic position in each year (x axis) and the proportion of female speakers in the same category and year. Horizontal and vertical gray dashed lines are the 50% of each proportion and diagonal black dashed line indicates where the propotions are similar."}
+propS <- data %>% group_by(year,position_cat,gender) %>% 
+  count() %>% 
+  pivot_wider(names_from = gender, values_from = n, values_fill = 0) %>%
+  mutate(propFspeaker = F/(M+F)) 
+proportions <- pop2 %>% dplyr::select(year, category, propFcat, F,M) %>% 
+  rename("position_cat"="category") %>%
+  left_join(propS, by=c("year", "position_cat")) %>%
+  mutate(position_cat = fct_relevel(position_cat, "student", "postdoc", "professor"))
+ggplot(proportions,aes(x=propFcat, y=propFspeaker, col=year)) +
+  scale_color_gradient()+
+  geom_point() +
+  facet_wrap(~position_cat)+
+  xlim(0,1) +
+  xlab("Proportion of females in the population") +
+  ylab("Proportion of females as speakers")+
+  geom_abline(slope=1,intercept=0, linetype="dashed") +
+  geom_hline(yintercept = 0.5, linetype="dashed", col="lightgray")+
+  geom_vline(xintercept = 0.5, linetype="dashed", col="lightgray")
+ggsave("figures/propFemale_popXspeaker.jpeg", units="in", width=14, height=5, dpi=300)
+```
+
+
+By year
+```{r, fig.height=8}
+proportions %>% pivot_longer(c(3,8), names_to = "data",values_to = "proportion") %>%
+ggplot(aes(x=year, y=proportion, col=data)) +
+  geom_point() +
+  scale_color_manual(name="Dataset",values = 1:2,
+                     labels=c("PPGE population", "Speakers pop"))+
+  geom_smooth(method="lm") +
+  facet_wrap(~position_cat, ncol=1)+
+  ylab("Proportion of females")+
+  geom_hline(yintercept = 0.5, linetype="dashed", col="lightgray")
+ggsave("figures/propFemale_popXspeaker_byYear.jpeg", units="in", width=7, height=10, dpi=300)
+```
+
+
+# Modeling
+
+## Proportions of female speakers by academic position and time.
+
+Binomial models with the response variable as 0 if the speaker is male or 1 if female. Response varibles as year and academic position.
+
+**OBS**: Starting in 2018, the Ecoencontros students committee tried actively to balance gender in presentations as an affirmative policy in the group. Becase of that we also analyzed if the proportions varied between before and after the policy.
+
+```{r}
+data$affirm_action <- ifelse(data$year<2018,"before", "after")
+```
+There were `r table(data$affirm_action)[2]` seminars before and  `r table(data$affirm_action)[1]` after the affirmative actions.
+
+
+```{r, echo=T}
+mod0 <- glm(fem ~ 1, family=binomial, data= data)
+mod1 <- glm(fem ~ year, family=binomial, data= data)
+mod2 <- glm(fem ~ affirm_action, family=binomial, data= data)
+mod3 <- glm(fem ~ position_cat, family=binomial, data= data)
+
+mod4 <- glm(fem ~ position_cat + year, family=binomial, data= data)
+mod5 <- glm(fem ~ position_cat*year, family=binomial, data= data)
+mod6 <- glm(fem ~ position_cat + affirm_action, family=binomial, data= data)
+mod7 <- glm(fem ~ position_cat*affirm_action, family=binomial, data= data)
+
+AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)
+```
+
+Best model is the one with interaction between academic position and affirmative actions (as time event), but it is equaly plausible with the model with year as time event and only academic position.
+
+## Residual diagnostic of the selected models
+
+All equaly plausible models presented satisfactory residual diagnostic.
+```{r}
+hnp(mod7)
+hnp(mod5)
+hnp(mod3)
+```
+
+```{r}
+plot(simulateResiduals(mod7))
+plot(simulateResiduals(mod5))
+plot(simulateResiduals(mod3))
+```
+
+
+## Models results
+
+```{r}
+summary(mod7)
+performance::r2(mod7)
+my7 <- ggpredict(mod7, terms=c("position_cat","affirm_action"))
+plot(my7) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+```{r}
+summary(mod5)
+performance::r2(mod5)
+my5 <- ggpredict(mod5, terms=c("year", "position_cat"))
+plot(my5) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+```{r}
+summary(mod3)
+performance::r2(mod3)
+my3 <- ggpredict(mod3, terms=c("position_cat"))
+plot(my3) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+
+## Proportions of female speakers by academic position and time - controling by population proportions
+
+The models below controls by differences in gender ratios in PPGE population by academic position. For that, we included a control variable in every model in the model set with the ratio of females in the year and by position.
+```{r}
+data <- data %>% left_join(pop2[,c(1:2,10)], by=c("year", "position_cat"="category"))
+```
+
+
+```{r, echo=T}
+modc0 <- glm(fem ~ 1 + ratioFcat, family=binomial, data= data)
+modc1 <- glm(fem ~ year + ratioFcat, family=binomial, data= data)
+modc2 <- glm(fem ~ affirm_action + ratioFcat, family=binomial, data= data)
+modc3 <- glm(fem ~ position_cat+ ratioFcat, family=binomial, data= data)
+
+modc4 <- glm(fem ~ position_cat + year + ratioFcat, family=binomial, 
+             data= data)
+modc5 <- glm(fem ~ position_cat*year + ratioFcat, family=binomial, data= data)
+modc6 <- glm(fem ~ position_cat +affirm_action + ratioFcat, family=binomial,
+             data= data)
+modc7 <- glm(fem ~ position_cat*affirm_action + ratioFcat, family=binomial,
+             data= data)
+
+AICtab(modc0,modc1,modc2,modc3,modc4,modc5,modc6,modc7, base=T, weights=T)
+```
+
+Similar results as without the ratio of females in the PPGE population
+
+## Residual diagnostic of the selected models
+
+All equaly plausible models presented satisfactory residual diagnostic.
+```{r}
+par(mfrow=c(2,2))
+hnp(modc7)
+hnp(modc5)
+hnp(modc3)
+```
+
+```{r}
+plot(simulateResiduals(modc7))
+plot(simulateResiduals(modc5))
+plot(simulateResiduals(modc3))   
+```
+
+
+## Models results
+
+Using 1:1 population gender ratio
+```{r}
+summary(modc7)
+performance::r2(modc7)
+myc7 <- ggpredict(modc7, terms=c("position_cat","affirm_action",
+                                 "ratioFcat[1]"))
+plot(myc7) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+```{r}
+summary(modc5)
+performance::r2(modc5)
+myc5 <- ggpredict(modc5, terms=c("year", "position_cat",
+                                 "ratioFcat[1]"))
+plot(myc5) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+```{r}
+summary(modc3)
+performance::r2(modc3)
+myc3 <- ggpredict(modc3, terms=c("position_cat", "ratioFcat[1]"))
+plot(myc3) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+

@@ -1,0 +1,764 @@
+---
+title: "Text analysis: title and abstract of male and female speakers"
+author: "Melina Leite, Júlia Barreto & Isabella Romitelli"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+  pdf_document:
+    highlight: tango
+    toc: yes
+---
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+theme_set(theme_cowplot())
+library(janitor); library(lubridate)
+library(tidytext)
+library(quanteda)
+library(quanteda.textplots)
+library(igraph)
+library(ggraph) # for visualising networks of bigrams
+
+opts_chunk$set(fig.align = 'center', warning = FALSE, message = FALSE, error = FALSE, echo=T, cache=F)
+options(formatR.arrow = TRUE, width = 90, help_type = "html")
+```
+
+
+
+
+# Title analysis
+
+```{r}
+data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
+                   header=T, as.is=T)
+data$date <- dmy(data$date)
+data$year <- year(data$date) 
+#skimr::skim(data)
+```
+
+Excluding special events as round tables and discussions not related to a project or study presented by someone.
+
+```{r}
+IDs <- c(154, 250, 211, 289)
+data <- data %>% filter(!id %in% IDs) %>% filter(!is.na(title_english))
+```
+
+```{r}
+table(data$position_cat, data$gender)
+```
+
+
+
+
+Tidytext
+```{r}
+tit <- data %>% dplyr::select(id,gender,position_cat, audience_n,
+                              title_english) 
+
+text_tok <- tit %>% unnest_tokens(output=word,
+                                   input=title_english)
+```
+
+stopwords - excluir word que não agregam como "and" "or" "the" "of" "in"
+
+```{r}
+# lista das stopwords em ingles
+stop_w <- tibble(word = stopwords(source = "stopwords-iso"))
+
+#retirar do corpus as stopwords
+text <- text_tok %>% 
+  anti_join(stop_w, by="word") 
+
+# retirar números e travessão e outras word
+remover <- c("ー", "1", "1st", "2", "364", "40", "70", "750", "aff", "da")
+
+text <- text %>% filter(!word %in% remover )
+
+# resolvendo plurais simples - só cortando o S
+plural <- c("actions","advances", "adaptations", "amphibians", "animals", "ants","anurans",
+            "applications","approaches", "bees","builds", "birds",
+            "cerrados","challenges",
+            "continents","crops", 
+            "decisions","declines","determines","determinants", "defenses",
+            "dynamics",
+            "economics", "ecosystems","environments", "experiences",
+            "forests",
+            "genetics","gifts","gradients","guides","impacts",
+            "increases","interactions","lives",
+            "landscapes","males","mammals", "mangroves","models","movements",
+            "mutualisms","networks","neotropics",
+            "opilions","phenotypes","plants","projects","paths", "perspectives",
+            "populations","promotes","relationships", "relations",
+            "resources","responses","roads","services","skulls","snakes","seeds",
+            "spaces", "spiders","stages", "trees", "variations",
+            "threats")
+
+text$word[text$word %in% plural] <- 
+  substr(text$word[text$word %in% plural],
+       1,nchar(text$word[text$word %in% plural])-1)
+```
+
+Agrupando word parecidas 
+```{r}
+lemma <- rbind(c("adaptive", "adaptation"),
+               c("advancement", "advance"),
+               c("agricultural", "agriculture"),
+               c("agro", "agriculture" ),
+               c("amazonia","amazon" ),
+               c("amazonian","amazon" ),
+               c("andean","andes"),
+               c("apply","application"),
+               c("applying","application"),
+               c("apidae","apis"),
+               c("arachnida","arachnid"),
+               c("argue","argument"),
+               c("basal", "basis"),
+               c("behavioral","behavior"),
+               c("behavioural","behavior"),
+               c("bignonieae", "bignoniaceae"),
+               c("biological", "biology"),
+               c("brazilian","brazil"),
+               c("building","build"),
+               c("changing", "change"),
+               c("cnidarian", "cnidaria"),
+               c("coastal","coast"),
+               c("colour", "color"),
+               c("colors", "color"),
+               c("communities","community" ),
+               c("competitive", "competition"),
+               c("complexity", "complex"),
+               c("convergences", "convergence"),
+               c("convergent", "convergence"),
+               c("cordatus","cordata" ),
+               c("croplands","crop"),
+               c( "cultural", "culture"),
+               c("darwin's", "darwin"),
+               c("darwinian", "darwin"),
+               c("defensive", "defense"),
+               c("dependent","dependence"),
+               c("detecting","detection"),
+               c("determine", "determinant"),
+               c("developmental", "development"),
+               c("dispersers","dispersal"),
+               c("disturbed", "disturbance"),
+               c("diversification", "diversity"),
+               c("dragonflies", "dragonfly"),
+               c("drier", "drought"),
+               c("ecological", "ecology"),
+               c("ecologists", "ecology"),
+               c("endemic", "endemism"),
+               c("effectiveness", "efficiency"),
+               c("environmental", "environment"),
+               c("evolutionary", "evolution"),
+               c("expanding", "expansion"),
+               c("extinct", "extinction"),
+               c("facilitate", "facilitation"),
+               c("fisheries", "fishery"),
+               c("floral", "flora"),
+               c("floristic", "flora"),
+               c("forested", "forest"),
+               c("functional", "function"),
+               c("functionally", "function"),
+               c("functioning", "function"),
+               c("geographical", "geographic"),
+               c("heterogeneties", "heterogeneity"),
+               c("heterogeneous", "heterogeneity"),
+               c("histories", "history"),
+               c("integrated", "integration"),
+               c("intregating", "integration"),
+               c("integrative", "integration"),
+               c("invasive", "invasion"),
+               c("isotopic", "isotope"),
+               c("linking", "link"),
+               c("living", "live"),
+               c("mammalia", "mammal"),
+               c("managed", "manage"),
+               c("managers", "manage"),
+               c("mathematical", "mathematics"),
+               c("mates", "mating"),
+               c("mediated", "mediate"),
+               c("mechanistic", "mechanism"),
+               c("matrices", "matrix"),
+               c("migratory", "migration"),
+               c("mimicking", "mimicry"),
+               c("modeling", "model"),
+               c("mutualistic", "mutualism"),
+               c("natural", "nature"),
+               c("neotropical", "neotropic"),
+               c("northeastern", "northeast"),
+               c("occuring", "occur"),
+               c("onça", "onca"),
+               c("opiliones", "opilion"),
+               c("parasite", "parasitism"),
+               c("parent", "parenting"),
+               c("phylogenies", "phylogeny"),
+               c("phylogenetic", "phylogeny"),
+               c("phylogenomic", "phylogeny"),
+               c("pollinators", "pollination"),
+               c("protected", "protect"),
+               c("protective", "protect"),
+               c("rainfall", "rain"),
+               c("reconstructing", "reconstruction"),
+               c("regulatory", "regulation"),
+               c("regulates", "regulation"),
+               c("relation", "relationship"),
+               c("reproductive", "reproduction"),
+               c("restored", "restoration"),
+               c("robustness", "robust"),
+               c("scientific", "science"),
+               c("scientist", "science"),
+               c("sexy", "sexual"),
+               c("simulated", "simulation"),
+               c("societies", "society"),
+               c("social", "society"),
+               c("socio", "society"),
+               c("space", "spatial"),
+               c("spacio", "spatial"),
+               c("stabilize", "stability"),
+               c("stable", "stability"),
+               c("stories", "story"),
+               c("strategic", "strategy"),
+               c("strategies", "strategy"),
+               c("structured", "structure"),
+               c("structuring", "structure"),
+               c("studies", "study"),
+               c("studing", "study"),
+               c("sustainable", "sustainability"),
+               c("theories", "theory"),
+               c("theoretical", "theory"),
+               c("threatened", "threat"),
+               c("tropical", "tropic"),
+               c("vision", "visual")
+               )
+lemma <- as.data.frame(lemma)
+
+for (i in 1:dim(lemma)[1]){
+  text$word[text$word == lemma[i,1]] <- lemma[i,2]
+}
+```
+
+
+contando as word
+
+```{r}
+pala <- text %>%
+  count(word) 
+```
+
+palavra mais comuns
+```{r}
+text %>%
+  count(word, sort = TRUE) %>% 
+  filter(n>8)%>%
+  kable()
+```
+
+```{r}
+props <- text %>%
+  count(gender, word) %>%
+  #filter(n>1) %>% # removendo word ditas apenas uma vez
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n))
+
+```
+
+```{r}
+library(scales)
+ggplot(props, aes(x=proportion_M,, y=proportion_F),
+       color=abs(proportion_F-proportion_M)) + 
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+  geom_text(aes(label=word),check_overlap = TRUE,vjust = 1.5) +
+  scale_x_log10(labels = percent_format(), limits=c(0.0005,0.03)) +
+  scale_y_log10(labels = percent_format(),limits=c(0.0005,0.03)) +
+  scale_color_gradient(low = "blue", high = "red") 
+```
+
+
+```{r}
+ggplot(props, aes(x=proportion_M, y=proportion_F))+ geom_point(alpha=0.1)+
+  geom_abline(color = "gray40", lty = 2) +
+  geom_text(aes(label=word),check_overlap = TRUE)
+```
+
+```{r}
+ggplot(props, aes(x=n_M, y=n_F))+ geom_point(alpha=0.1)+
+  geom_abline(color = "gray40", lty = 2) +
+  geom_text(aes(label=word),check_overlap = TRUE) +
+  xlim(-1,30) + ylim(-1,30)
+  
+```
+
+```{r}
+seleciona <- pala %>% arrange(desc(n)) %>% filter(n>8)
+
+props <- text %>% filter(word %in% seleciona$word) %>%
+  count(gender, word) %>%
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n))
+
+
+test <- props %>% arrange(desc(proportion_F), desc(proportion_M)) %>%
+  mutate(ntot = n_F + n_M) %>%
+  mutate(word = fct_reorder(word,(ntot),max))
+test$proportion_F <- test$proportion_F*-1
+
+test <- test [,1:3] %>% 
+  pivot_longer(2:3,names_to = "gender", values_to ="proportion")
+
+test %>% filter(!word %in% c("animal", "behavior", "opilion", "role",
+                                "science", "sexual","nework")) %>%
+ggplot(aes(x=proportion, y=word,fill=gender)) +
+  geom_col()+ ylab("") + xlab("Proportion")+
+  scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
+                    labels=c("F", "M"))+
+   geom_vline(xintercept = c(-0.1,-0.05,-0.02,0,0.02,0.05,0.10),
+              linetype="dotted",
+             col="darkgray") +
+  scale_x_continuous(breaks=c(-0.1,-0.05,0,0.05,0.10),
+                     labels = c(0.10,0.05,0,0.05,0.10))
+  
+ggsave("figures/title_wordFrequency.jpeg", units="in", width=7, height=7, dpi=300)
+```
+
+
+# word cloud
+
+```{r}
+textplot_wordcloud(x=dfm(tokens(text$word)))
+```
+
+```{r}
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="F"])),
+                   col="#6D57CF")
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="M"])),
+                   col="#FCA532")
+```
+
+
+
+# TF IDF
+
+```{r}
+text_id <- text %>% count(gender, word) %>% 
+  bind_tf_idf(word, gender, n) %>%
+  arrange(desc(tf_idf))
+#text_id
+```
+
+
+```{r}
+text_id$word <- as.factor(text_id$word)
+text_id %>%
+  group_by(gender) %>% 
+  arrange(desc(tf_idf)) %>% 
+  top_n(5, tf_idf) %>%  
+  ggplot(aes(x = tf_idf, y = reorder(word, tf_idf), fill = gender)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~gender, scales = "free") +
+  theme_minimal()
+```
+
+
+
+
+
+
+# N-GRAMS
+
+```{r}
+bigrams <- tit %>%
+  unnest_tokens(bigram, title_english, token = "ngrams", n = 2)
+```
+
+excluindo stopwords
+```{r}
+bigrams <- bigrams %>% 
+  separate(col = bigram,
+           into = c("word1", "word2"),
+           sep = " ",
+           remove = FALSE)
+```
+
+```{r}
+bigrams_stop <- bigrams %>%
+  filter(!word1 %in% stop_words$word & !word2 %in% stop_words$word)
+```
+
+```{r, eval=F}
+bigrams_stop %>% 
+  count(gender,bigram, sort = TRUE)
+```
+
+```{r}
+test <- bigrams_stop %>% 
+  count(gender,bigram, sort = TRUE) %>% 
+  filter(n > 1) %>%
+  mutate(n2 = n)
+
+test$n2[test$gender == "F"] <- test$n2[test$gender == "F"]*-1
+test$bigram = fct_reorder(test$bigram, test$n2,min)
+
+ggplot(test, aes(x=n2, y=fct_rev(bigram), fill=gender)) + geom_col()
+
+```
+
+
+```{r}
+bigrams_stop %>% 
+  count(gender,bigram, sort = TRUE) %>% 
+  filter(n > 1) %>% 
+  ggplot(aes(x = reorder(bigram, n),
+             y = n)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "frequency", title = "Most frequent bigrams") +
+  coord_flip() +
+  facet_wrap(~gender) +
+  theme_minimal()
+```
+
+To find bigrams that contain specific words, we can use `filter()`:
+```{r}
+bieco <- bigrams_stop %>% group_by(gender) %>%
+  filter(str_detect(bigram, "ecolog")) 
+bieco %>% 
+  count(gender,bigram, sort=T) %>%
+  pivot_wider(names_from = gender, values_from = n)
+```
+
+
+```{r}
+bigrams_stop %>% group_by(gender) %>%
+  filter(str_detect(bigram, "evolu")) %>% 
+  distinct(bigram) %>% 
+  count(gender,bigram, sort=T) %>%
+  pivot_wider(names_from = gender, values_from = n)
+```
+quase nao tem mulher que fala de evolução
+
+```{r}
+bigrams_stop %>% group_by(gender) %>%
+  filter(str_detect(bigram, "forest")) %>% 
+  distinct(bigram) %>% 
+  count(gender,bigram, sort=T) %>%
+  pivot_wider(names_from = gender, values_from = n)
+```
+
+### wordcloud bigram ecology
+
+
+```{r}
+bieco <- bigrams_stop %>% group_by(gender) %>%
+  filter(str_detect(bigram, "ecolog")) 
+bieco$word1[bieco$word1 == "ecological"] <- "ecology"
+bieco$word2[bieco$word2 == "ecological"] <- "ecology"
+bieco$bigram <- paste(bieco$word1,bieco$word2)
+
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(bieco$bigram[bieco$gender=="F"])), min_count = 1,
+                   col="#6D57CF")
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(bieco$bigram[bieco$gender=="M"])), min_count = 1,
+                   col="#FCA532")
+```
+
+```{r}
+bievo <- bigrams_stop %>% group_by(gender) %>%
+  filter(str_detect(bigram, "evol")) 
+bievo$word1[bievo$word1 == "evolutionary"] <- "evolution"
+bievo$word2[bievo$word2 == "evolutionary"] <- "evolution"
+bievo$bigram <- paste(bievo$word1,bievo$word2)
+
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(bievo$bigram[bievo$gender=="F"])), min_count = 1,
+                   col="#6D57CF", rotation=0)
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(bievo$bigram[bievo$gender=="M"])), min_count = 1,
+                   col="#FCA532", rotation=0)
+```
+
+## TF_IDF bigram
+
+```{r}
+bigram_tfidf <- bigrams_stop %>% 
+  count(gender, bigram) %>% 
+  bind_tf_idf(bigram, gender, n)
+# bigram_tfidf %>% 
+#   arrange(desc(tf_idf))
+```
+
+```{r}
+bigram_tfidf %>%
+  group_by(gender) %>%
+  slice_max(tf_idf, n = 3) %>%
+  ungroup() %>%
+  ggplot() +
+  aes(x = tf_idf, 
+      y = fct_reorder(bigram, tf_idf), 
+      fill = gender) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ gender, scales = "free") +
+  labs(x = "tf-idf", y = NULL) +
+  theme_minimal()
+```
+
+```{r}
+alice_graph <- bigrams_stop %>% 
+  count(word1, word2) %>% # we need the words separated for this graph
+  filter(n > 1) %>% 
+  graph_from_data_frame()
+
+set.seed(2021)
+ggraph(alice_graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), 
+                 vjust = 1, hjust = 1)
+```
+
+
+```{r}
+alice_graph <- bieco %>% filter(gender=="F") %>% ungroup() %>%
+  count(word1, word2) # we need the words separated for this graph
+
+alice_graph$word1[alice_graph$word1=="ecological"] <- "ecology"
+alice_graph$word2[alice_graph$word2=="ecological"] <- "ecology"
+
+alice_graph <- alice_graph %>%  
+  graph_from_data_frame()
+
+set.seed(2021)
+ggraph(alice_graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), 
+                 vjust = 1, hjust = 0.5)
+```
+
+```{r}
+alice_graph <- bieco %>% filter(gender=="M") %>% ungroup() %>%
+  count(word1, word2) # we need the words separated for this graph
+alice_graph$word1[alice_graph$word1=="ecological"] <- "ecology"
+alice_graph$word2[alice_graph$word2=="ecological"] <- "ecology"
+
+alice_graph <- alice_graph %>%  
+  graph_from_data_frame()
+
+set.seed(2022)
+ggraph(alice_graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), 
+                 vjust = 1, hjust = 0.5)
+```
+
+
+```{r}
+alice_graph <- bigrams_stop %>% group_by(gender) %>%
+  count(word1, word2) %>% # we need the words separated for this graph
+  filter(n > 1) %>% 
+  graph_from_data_frame()
+
+set.seed(2021)
+ggraph(alice_graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), 
+                 vjust = 1, hjust = 1)
+```
+
+
+We get a sense of which words occur together, but the graph could definitely look prettier and it's unclear which word occurs first: is it "rose tree" or "tree rose", for example?
+
+We'll create an object called "a" that saves an arrow shape:
+```{r}
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+```
+This way, we can indicate how the words in the bigrams are ordered.
+
+Nicer graph:
+```{r}
+ggraph(alice_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = 1), #n # the links are more transparent if the bigram is rare
+                 show.legend = FALSE,
+                 arrow = a, end_cap = circle(.03, 'inches')) + #adding the arrows, making sure they don't touch the node
+  geom_node_point(color = "#34013f", size = 3) + # larger, purple nodes
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void() +
+  labs(title = 'Bigrams (two-word combinations)"')
+```
+
+# Abstract + title
+
+```{r}
+data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
+                   header=T, as.is=T)
+data$date <- dmy(data$date)
+data$year <- year(data$date) 
+#skimr::skim(data)
+```
+
+Excluding special events as round tables and discussions not related to a project or study presented by someone.
+
+Using abstracts in portuguese
+```{r}
+IDs <- c(154, 250, 211, 289)
+data <- data %>% filter(!id %in% IDs) %>% filter(!is.na(abstract_original),
+                                                 abstract_language=="port") 
+```
+
+```{r}
+table(data$gender)
+```
+
+
+
+
+Tidytext
+```{r}
+tit <- data %>% dplyr::select(id,gender,position_cat, audience_n,
+                             abstract_original, title_original) %>%
+  mutate(text = paste(title_original, abstract_original))
+
+text_tok <- tit %>% unnest_tokens(output=word,
+                                   input=text)
+
+stop_w <- tibble(word = stopwords("pt"))
+
+#retirar do corpus as stopwords
+text <- text_tok %>% 
+  anti_join(stop_w, by="word")  %>% 
+  filter(!word %in% c("é", "sobre", "ser"))
+```
+
+
+
+```{r}
+pala <- text %>%
+  count(word) 
+```
+
+palavra mais comuns
+```{r}
+text %>%
+  count(word, sort = TRUE) %>% 
+  filter(n>8)%>%
+  kable()
+```
+
+```{r}
+props <- text %>%
+  count(gender, word) %>%
+  #filter(n>1) %>% # removendo word ditas apenas uma vez
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n))
+
+```
+
+```{r}
+library(scales)
+ggplot(props, aes(x=proportion_M,, y=proportion_F),
+       color=abs(proportion_F-proportion_M)) + 
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+  geom_text(aes(label=word),check_overlap = TRUE,vjust = 1.5) +
+  scale_x_log10(labels = percent_format(), limits=c(0.0005,0.03)) +
+  scale_y_log10(labels = percent_format(),limits=c(0.0005,0.03)) +
+  scale_color_gradient(low = "blue", high = "red") 
+```
+
+
+```{r}
+ggplot(props, aes(x=proportion_M, y=proportion_F))+ geom_point(alpha=0.1)+
+  geom_abline(color = "gray40", lty = 2) +
+  geom_text(aes(label=word),check_overlap = TRUE)
+```
+
+```{r}
+ggplot(props, aes(x=n_M, y=n_F))+ geom_point(alpha=0.1)+
+  geom_abline(color = "gray40", lty = 2) +
+  geom_text(aes(label=word),check_overlap = TRUE) +
+  xlim(-1,30) + ylim(-1,30)
+  
+```
+
+```{r}
+seleciona <- pala %>% arrange(desc(n)) %>% filter(n>8)
+
+props <- text %>% filter(word %in% seleciona$word) %>%
+  count(gender, word) %>%
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n))
+
+
+test <- props %>% arrange(desc(proportion_F), desc(proportion_M)) %>%
+  mutate(ntot = n_F + n_M) %>%
+  mutate(word = fct_reorder(word,(ntot),max))
+test$proportion_F <- test$proportion_F*-1
+
+test <- test [,1:3] %>% 
+  pivot_longer(2:3,names_to = "gender", values_to ="proportion")
+
+test %>%
+ggplot(aes(x=proportion, y=word,fill=gender)) +
+  geom_col()+ ylab("") + xlab("Proportion")+
+  scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
+                    labels=c("F", "M"))
+  
+ggsave("figures/title_wordFrequency.jpeg", units="in", width=7, height=7, dpi=300)
+```
+
+
+# word cloud
+
+```{r}
+textplot_wordcloud(x=dfm(tokens(text$word)))
+```
+
+```{r}
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="F"])),
+                   col="#6D57CF")
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="M"])),
+                   col="#FCA532")
+```
+
+
+
+# TF IDF
+
+```{r}
+text_id <- text %>% count(gender, word) %>% 
+  bind_tf_idf(word, gender, n) %>%
+  arrange(desc(tf_idf))
+#text_id
+```
+
+
+```{r}
+text_id$word <- as.factor(text_id$word)
+text_id %>%
+  group_by(gender) %>% 
+  arrange(desc(tf_idf)) %>% 
+  top_n(5, tf_idf) %>%  
+  ggplot(aes(x = tf_idf, y = reorder(word, tf_idf), fill = gender)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~gender, scales = "free") +
+  theme_minimal()
+```
+
+

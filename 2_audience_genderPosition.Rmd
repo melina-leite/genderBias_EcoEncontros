@@ -1,0 +1,299 @@
+---
+title: "Gender bias in audience of seminars and career position"
+author: "Melina Leite, Júlia Barreto & Isabella Romitelli"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+  pdf_document:
+    highlight: tango
+    toc: yes
+---
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+theme_set(theme_cowplot())
+library(janitor); library(lubridate)
+library(DHARMa); library(ggeffects)
+library(bbmle); library(MASS)
+library(hnp); library(performance)
+library(FactoMineR); library(factoextra)
+
+
+opts_chunk$set(fig.align = 'center', warning = FALSE, message = FALSE, error = FALSE, echo=T, cache=F)
+options(formatR.arrow = TRUE, width = 90, help_type = "html")
+```
+
+# Data
+
+## EcoEncontros Seminar talks
+
+
+Talks from EcoEncontros Seminar series at the Graduate Program of Ecology in the University of São Paulo (PPGE-USP), Brazil
+
+See file `metadata.txt`, in folder `data` for more description and detail of the dataset.
+```{r}
+data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
+                   header=T, as.is=T)
+data$date <- dmy(data$date)
+data$year <- year(data$date) 
+#skimr::skim(data)
+```
+
+Excluding special events as round tables and discussions not related to a project or study presented by someone.
+
+```{r}
+IDs <- c(154, 250, 211, 289)
+data <- data %>% filter(!id %in% IDs)
+```
+
+For this specific analysis, excluding speakers that are not in academia ("others"), and keeping undergraduate students, MD and PhD in the group student. postdoc, professor or researcher*.
+
+*Researchers are included in the professor categorical position (column `position_cat`) because all of them come from research institutions.
+
+```{r}
+data <- data %>% filter(position_cat != "others")
+data$position_cat <- fct_relevel(data$position_cat, "student", 
+                                 "postdoc","professor")
+```
+
+Excluding seminars with more than one speaker
+
+```{r}
+events <- data %>% count(id) %>% filter(n>1)
+data2 <- data %>% filter(!id %in% events$id,
+                        !is.na(audience_n))
+```
+
+
+```{r}
+dim(data)
+```
+
+# Data description
+
+Audience by gender and academic position
+
+```{r}
+ggplot(data, aes(x=position_cat, y=audience_n, fill=gender)) +
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+  geom_boxplot()
+  #geom_violin(position = position_dodge(0.8)) +
+  #geom_jitter(position=position_jitterdodge(0.2),shape=21)
+```
+
+```{r}
+library(ggbeeswarm)
+# outra opção
+ggplot(data, aes(x=position_cat, y=audience_n, fill=gender)) +
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  geom_violin(col="black") +
+  geom_quasirandom(dodge.width = 0.9, shape=21)+
+  stat_summary(fun.y=median, aes(ymin=..y.., ymax=..y..),geom='errorbar', 
+               width=0.8, size=0.8, position = position_dodge(width = 0.9))+
+  xlab("") + ylab("Audience (N)")
+```
+
+Variation in time
+```{r, fig.height=10}
+ggplot(data, aes(x=date, y=audience_n, fill=gender)) +
+  facet_wrap(~position_cat, ncol=1)+
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  geom_quasirandom(dodge.width = 0.9, shape=21)+
+  geom_smooth()+
+  xlab("") + ylab("Audience (N)")
+```
+
+
+
+
+Looking for possible biases for speakers from inside and outside PPGE. 
+
+```{r}
+data$ppge <- ifelse(data$origin == "IB", "inside", "outside")
+table(data$gender,data$ppge)
+```
+
+```{r}
+ggplot(data, aes(x=ppge, y=audience_n, fill=gender)) +
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  geom_violin(col="black") +
+  geom_quasirandom(dodge.width = 0.9, shape=21)+
+  stat_summary(fun.y=median, aes(ymin=..y.., ymax=..y..),geom='errorbar', 
+               width=0.8, size=0.8, position = position_dodge(width = 0.9))+
+  xlab("PPGE") + ylab("Audience (N)")
+```
+
+Looking for possible biases for speakers from Brazil and abroad. 
+
+```{r}
+data$brazilian <- ifelse(data$country == "Brasil", "yes", "no")
+table(data$gender,data$brazilian)
+```
+
+```{r}
+ggplot(data, aes(x=brazilian, y=audience_n, fill=gender)) +
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  geom_violin(col="black") +
+  geom_quasirandom(dodge.width = 0.9, shape=21)+
+  stat_summary(fun.y=median, aes(ymin=..y.., ymax=..y..),geom='errorbar', 
+               width=0.8, size=0.8, position = position_dodge(width = 0.9))+
+  xlab("Brazilian") + ylab("Audience (N)")
+```
+
+
+# Modeling
+
+
+Negative binomial
+
+
+```{r echo=TRUE}
+mg0 <- glm.nb(audience_n~ 1, data=data)
+mg1 <- glm.nb(audience_n~ gender, data=data)
+mg2 <- glm.nb(audience_n~ position_cat, data=data)
+mg3 <- glm.nb(audience_n~ year, data=data)
+
+mg4 <- glm.nb(audience_n~ gender + position_cat, data=data)
+mg5 <- glm.nb(audience_n~ gender + year, data=data)
+mg6 <- glm.nb(audience_n~ year + position_cat, data=data)
+
+mg7 <- glm.nb(audience_n~ gender*position_cat, data=data)
+mg8 <- glm.nb(audience_n~ gender*year, data=data)
+mg9 <- glm.nb(audience_n~ year*position_cat, data=data)
+
+mg10 <- glm.nb(audience_n~ gender*position_cat*year, data=data)
+
+AICtab(mg2, mg0,mg1, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10)
+```
+
+## Residual diagnostic
+
+```{r}
+hnp::hnp(mg7)
+plot(simulateResiduals(mg7))
+```
+
+```{r}
+hnp::hnp(mg4)
+plot(simulateResiduals(mg4))
+```
+
+## Models result
+
+```{r echo=TRUE}
+summary(mg7)
+performance::r2(mg7)
+```
+```{r}
+myg7 <- ggpredict(mg7, terms=c("position_cat","gender"))
+plot(myg7) +
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))
+```
+
+```{r echo=TRUE}
+summary(mg4)
+performance::r2(mg4)
+```
+```{r}
+myg4 <- ggpredict(mg4, terms=c("position_cat","gender"))
+plot(myg4) +
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))
+```
+
+
+# Only professors - productivity metrics
+
+Investigating if differences in productivity between male and female professors and researches are related to the audience.
+
+Measured productivity publication metrics from Google Scholar for professors and researchers. 
+
+Creating productivity index using PCA 1st axis from metrics.
+
+## PCA productivity metrics
+
+```{r}
+dp <- data %>% filter(!is.na(data$total_citation_n),
+                      !is.na(data$nature_index_count))
+table(dp$gender)
+```
+
+Productivity publication metrics
+```{r}
+pca1 <- PCA(dp[, c(21:28)], graph=F)
+p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
+                      col.ind.sub="none",  geom="point",
+                      repel = TRUE) +
+  scale_color_manual(name="gender",values = c("#b2abd2", "#fdb863"))+
+  scale_fill_manual(name="gender",values = c("#b2abd2", "#fdb863"))
+p1
+```
+
+
+Extracting PCA 2 first axes
+```{r}
+dp$pc1 <- pca1$ind$coord[,1]
+dp$pc2 <- pca1$ind$coord[,2]
+```
+
+# Modeling
+
+```{r}
+m0 <- glm.nb(audience_n ~ 1, data=dp)
+m1 <- glm.nb(audience_n ~ gender, data=dp)
+m2 <- glm.nb(audience_n ~ pc1 + pc2, data=dp)
+
+m3 <- glm.nb(audience_n ~ gender + pc1 + pc2, data=dp)
+m4 <- glm.nb(audience_n ~ gender*pc1 + gender*pc2, data=dp)
+
+AICtab(m0,m1,m2,m3,m4, base=T, weights=T)
+```
+
+## Residual diagnostic
+Best model
+```{r}
+hnp(m3)
+plot(simulateResiduals(m3))
+```
+## Model results
+
+```{r echo=TRUE}
+summary(m3)
+performance::r2(mg3)
+```
+```{r}
+my3 <- ggpredict(m3, terms=c("pc1","gender"))
+plot(my3) +
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+   theme_cowplot() + ggtitle("") +
+  ylab("Audience (N)") + xlab("Productivity (PC1 axis)")
+```
+```{r}
+plot(my3) +
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+   theme_cowplot() + ggtitle("") +
+  ylab("Audience (N)") + xlab("Productivity (PC1 axis)")
+```
+
+
+
+```{r}
+my3 <- ggpredict(m3, terms=c("pc2","gender"))
+plot(my3) +
+  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
+  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+   theme_cowplot()
+```
+
+
+

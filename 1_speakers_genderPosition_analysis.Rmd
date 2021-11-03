@@ -1,6 +1,6 @@
 ---
 title: "Gender bias in speakers and career position"
-author: "Melina Leite, Júlia Barreto"
+author: "Melina Leite e Júlia Barreto"
 date: "`r format(Sys.time(), '%d de %B de %Y')`"
 output:
   rmdformats::readthedown:

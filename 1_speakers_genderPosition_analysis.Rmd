@@ -65,10 +65,6 @@ data$fem <- 1
 data$fem[data$gender == "M"] <- 0 
 ```
 
-```{r}
-head(data)
-```
-
 
 ## Population data from PPGE-USP from 2008-2019
 
@@ -83,6 +79,10 @@ kable(pop)
 
 
 # Data description
+
+```{r}
+dim(data)
+```
 
 ## Speakers data
 Proportion and number of male and female speakers per academic position.
@@ -240,6 +240,7 @@ Binomial models with the response variable as 0 if the speaker is male or 1 if f
 
 ```{r}
 data$affirm_action <- ifelse(data$year<2018,"before", "after")
+data$affirm_action <- fct_relevel(data$affirm_action,"before", "after")
 ```
 There were `r table(data$affirm_action)[2]` seminars before and  `r table(data$affirm_action)[1]` after the affirmative actions.
 
@@ -255,7 +256,11 @@ mod5 <- glm(fem ~ position_cat*year, family=binomial, data= data)
 mod6 <- glm(fem ~ position_cat + affirm_action, family=binomial, data= data)
 mod7 <- glm(fem ~ position_cat*affirm_action, family=binomial, data= data)
 
-AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)
+kable(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T), digits=2)
+
+#as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
+#  mutate_at(c(1,2,4), round, digits=2) %>% kable()
+
 ```
 
 Best model is the one with interaction between academic position and affirmative actions (as time event), but it is equaly plausible with the model with year as time event and only academic position.
@@ -285,6 +290,30 @@ my7 <- ggpredict(mod7, terms=c("position_cat","affirm_action"))
 plot(my7) +
   geom_hline(yintercept = 0.5, linetype="dashed")
 ```
+
+Figure proportion of female speakers by position_cat e affirm_action
+
+
+```{r}
+suma <- data %>% count(position_cat, affirm_action,fem)
+prs <- as.data.frame(my7)
+
+ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
+  geom_point(aes(, size=n),position=position_dodge(0.6), alpha=0.2, show_guides=F) +
+  scale_size(range=c(1,10), breaks = c(3,10,20,60))+
+  geom_pointrange(data=prs, aes(x=x, y=predicted, col=group,
+                                ymax=conf.high, ymin=conf.low), 
+             position=position_dodge(0.6)) +
+  geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
+  scale_color_manual(name="Affirmative \n actions", 
+                     values = c("goldenrod", "green4")) +
+  ylab("Proportion of female speakers")+
+  xlab("Academic position")+
+  theme(text = element_text(size=20),
+        axis.text = element_text(size=18))
+ggsave("figures/prop_female_speakers.jpeg", width=9, height = 6)  
+```
+
 
 ```{r}
 summary(mod5)

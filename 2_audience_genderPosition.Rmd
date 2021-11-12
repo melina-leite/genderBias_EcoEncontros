@@ -65,7 +65,7 @@ Excluding seminars with more than one speaker
 
 ```{r}
 events <- data %>% count(id) %>% filter(n>1)
-data2 <- data %>% filter(!id %in% events$id,
+data <- data %>% filter(!id %in% events$id,
                         !is.na(audience_n))
 ```
 
@@ -157,69 +157,103 @@ Negative binomial
 
 ```{r}
 data$affirm_action <- ifelse(data$year<2018,"before", "after")
+data$affirm_action <- fct_relevel(data$affirm_action, "before", "after")
 ```
-
 
 ```{r echo=TRUE}
 mg0 <- glm.nb(audience_n~ 1, data=data)
 mg1 <- glm.nb(audience_n~ gender, data=data)
 mg2 <- glm.nb(audience_n~ position_cat, data=data)
 mg3 <- glm.nb(audience_n~ year, data=data)
-#mg3b <- glm.nb(audience_n~ affirm_action, data=data)
+mg3b <- glm.nb(audience_n~ affirm_action, data=data)
 
 mg4 <- glm.nb(audience_n~ gender + position_cat, data=data)
 mg5 <- glm.nb(audience_n~ gender + year, data=data)
-##mg5b <- glm.nb(audience_n~ gender + affirm_action, data=data)
+mg5b <- glm.nb(audience_n~ gender + affirm_action, data=data)
 mg6 <- glm.nb(audience_n~ year + position_cat, data=data)
-#mg6b <- glm.nb(audience_n~ affirm_action + position_cat, data=data)
+mg6b <- glm.nb(audience_n~ affirm_action + position_cat, data=data)
 
 mg7 <- glm.nb(audience_n~ gender*position_cat, data=data)
 mg8 <- glm.nb(audience_n~ gender*year, data=data)
-#mg8b <- glm.nb(audience_n~ gender*affirm_action, data=data)
+mg8b <- glm.nb(audience_n~ gender*affirm_action, data=data)
 mg9 <- glm.nb(audience_n~ year*position_cat, data=data)
-#mg9b <- glm.nb(audience_n~ affirm_action*position_cat, data=data)
+mg9b <- glm.nb(audience_n~ affirm_action*position_cat, data=data)
 
-mg10 <- glm.nb(audience_n~ gender*position_cat*year, data=data)
-#mg10b <- glm.nb(audience_n~ gender*position_cat*affirm_action, data=data)
+mg10 <- glm.nb(audience_n~ gender + position_cat + year, data=data)
+mg10b <- glm.nb(audience_n~ gender + position_cat + affirm_action, data=data)
+mg11 <- glm.nb(audience_n~ gender*position_cat + year, data=data)
+mg11b <- glm.nb(audience_n~ gender*position_cat + affirm_action, data=data)
+mg12 <- glm.nb(audience_n~ gender + position_cat * year, data=data)
+mg12b <- glm.nb(audience_n~ gender + position_cat * affirm_action, data=data)
+mg13 <- glm.nb(audience_n~ gender*year + position_cat, data=data)
+mg13b <- glm.nb(audience_n~ gender*affirm_action + position_cat, data=data)
 
-AICtab(mg2, mg0,mg1, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10),
-      # mg3b,mg5b,mg6b,mg8b,mg9b,mg10b)
+
+mg14 <- glm.nb(audience_n~ gender*position_cat*year, data=data)
+mg14b <- glm.nb(audience_n~ gender*position_cat*affirm_action, data=data)
+
+AICtab(mg2, mg0,mg1, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10,mg11,mg12,mg13,mg14,
+      mg3b,mg5b,mg6b,mg8b,mg9b,mg10b,mg11b,mg12b,mg13b, mg14b)
 ```
 
 
 ## Residual diagnostic
 
 ```{r}
-hnp::hnp(mg7)
-plot(simulateResiduals(mg7))
+hnp::hnp(mg11b)
+plot(simulateResiduals(mg11b))
 ```
 
 ```{r}
-hnp::hnp(mg4)
-plot(simulateResiduals(mg4))
+hnp::hnp(mg10b)
+plot(simulateResiduals(mg10b))
 ```
 
 ## Models result
 
 ```{r echo=TRUE}
-summary(mg7)
-performance::r2(mg7)
+summary(mg11b)
+performance::r2(mg11b)
 ```
 ```{r}
-myg7 <- ggpredict(mg7, terms=c("position_cat","gender"))
-plot(myg7) +
+myg11b <- ggpredict(mg11b, terms=c("position_cat","gender", "affirm_action"))
+
+plot(myg11b) +
   scale_color_manual(values = c("#b2abd2", "#fdb863"))
 ```
 
+
+COmplete figure
+```{r}
+prs <- as.data.frame(myg10b) %>% rename(affirm_action = facet)
+ggplot(data, aes(x=position_cat, y=audience_n, )) +
+  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.5) +
+  facet_grid(~affirm_action) +
+  geom_pointrange(data=prs, aes(x=x, y=predicted, col=group,
+                                ymax=conf.high, ymin=conf.low), 
+             position=position_dodge(0.6))
+```
+
+
+
+
+
+
 ```{r echo=TRUE}
-summary(mg4)
-performance::r2(mg4)
+summary(mg10b)
+performance::r2(mg10b)
 ```
 ```{r}
-myg4 <- ggpredict(mg4, terms=c("position_cat","gender"))
-plot(myg4) +
+myg10b <- ggpredict(mg10b, terms=c("position_cat","gender", "affirm_action"))
+plot(myg10b) +
   scale_color_manual(values = c("#b2abd2", "#fdb863"))
 ```
+
+
+```{r}
+
+```
+
 
 
 # Only professors - productivity metrics

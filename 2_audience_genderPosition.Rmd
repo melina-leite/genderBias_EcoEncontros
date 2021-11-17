@@ -193,7 +193,8 @@ mg14 <- glm.nb(audience_n~ gender*position_cat*year, data=data)
 mg14b <- glm.nb(audience_n~ gender*position_cat*affirm_action, data=data)
 
 AICtab(mg2, mg0,mg1, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10,mg11,mg12,mg13,mg14,
-      mg3b,mg5b,mg6b,mg8b,mg9b,mg10b,mg11b,mg12b,mg13b, mg14b)
+      mg3b,mg5b,mg6b,mg8b,mg9b,mg10b,mg11b,mg12b,mg13b, mg14b,
+      base=T, weights=T) %>% kable(digits=2)
 ```
 
 
@@ -215,23 +216,36 @@ plot(simulateResiduals(mg10b))
 summary(mg11b)
 performance::r2(mg11b)
 ```
+
+Average audience before affirmative actions:`r exp(coef(mg11b)[1])`
+
+Average audience aftter affirmative actions: `r exp(coef(mg11b)[1]+ coef(mg11b)[5])`
+
+
+
 ```{r}
 myg11b <- ggpredict(mg11b, terms=c("position_cat","gender", "affirm_action"))
-
-plot(myg11b) +
-  scale_color_manual(values = c("#b2abd2", "#fdb863"))
+as.data.frame(myg11b)%>% mutate(predicted = round(predicted,digits=0))
 ```
 
 
-COmplete figure
+Complete figure
 ```{r}
-prs <- as.data.frame(myg10b) %>% rename(affirm_action = facet)
-ggplot(data, aes(x=position_cat, y=audience_n, )) +
-  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.5) +
-  facet_grid(~affirm_action) +
-  geom_pointrange(data=prs, aes(x=x, y=predicted, col=group,
-                                ymax=conf.high, ymin=conf.low), 
-             position=position_dodge(0.6))
+prs <- as.data.frame(myg11b) %>% rename(affirm_action = facet)
+ggplot(data, aes(x=position_cat, y=audience_n)) +
+  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
+             size=3,show.legend = F) +
+  facet_grid(~affirm_action, 
+             labeller = as_labeller(c("before"="Before affirmative actions" , "after"="After affirmative actions" ))) +
+ #scale_color_manual(values = c("#b2abd2", "#fdb863")) +
+  scale_color_manual(values = c("#6D57CF","#FCA532")) +
+  scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
+  geom_pointrange(data=prs, aes(x=x, y=predicted,fill=group,
+                                ymax=conf.high, ymin=conf.low), alpha=1,
+             position=position_dodge(0.6), size=1, shape=21, col="black") +
+  xlab("Academic position") + ylab("Audience (N)") 
+
+ggsave("figures/audience_speakers.jpeg", width=8, height = 4)  
 ```
 
 
@@ -250,12 +264,6 @@ plot(myg10b) +
 ```
 
 
-```{r}
-
-```
-
-
-
 # Only professors - productivity metrics
 
 Investigating if differences in productivity between male and female professors and researches are related to the audience.
@@ -269,18 +277,27 @@ Creating productivity index using PCA 1st axis from metrics.
 ```{r}
 dp <- data %>% filter(!is.na(data$total_citation_n),
                       !is.na(data$nature_index_count))
-table(dp$gender)
+table(dp$gender, dp$affirm_action)
 ```
 
 Productivity publication metrics
+
 ```{r}
 pca1 <- PCA(dp[, c(21:28)], graph=F)
 p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
                       col.ind.sub="none",  geom="point",
                       repel = TRUE) +
-  scale_color_manual(name="gender",values = c("#b2abd2", "#fdb863"))+
-  scale_fill_manual(name="gender",values = c("#b2abd2", "#fdb863"))
+  geom_vline(xintercept = 0, linetype="dashed") + 
+  geom_hline(yintercept = 0, linetype="dashed")+
+  scale_color_manual(name="gender",values = c("#6D57CF","#FCA532"))+
+  scale_shape(name="gender")+
+  scale_fill_manual(name="gender",values = c("#6D57CF","#FCA532"))+
+  ggtitle("PCA biplot for professor's productivy metrics") +
+  xlab("PC1 (52%)") + ylab("PC2 (21%") +
+  theme_cowplot()
+
 p1
+ggsave("figures/pca_biplot.jpeg", width=8, height = 7)  
 ```
 
 
@@ -292,46 +309,54 @@ dp$pc2 <- pca1$ind$coord[,2]
 
 # Modeling
 
+**OBS interna (apagar depois)**: podem perguntar porque a gente nao colocou o affirm_action no modelo já que é importane para prever a audni6encia (como vimos no modelo anterior), eu até fiz uns testes, mas eu nao acho que devamos complicar este modelo, já que o foco aqui é comaprar professores quanto à produtividade, com hipótese clara de que dada uma mesma produtivdade ainda assim o mulheres vão ter menor audiencia que homens. Então é bom deixar isso claro no texto - de que estamos nessa análise focando apenas em genero e métrica de produtividade e por isso nao tem tempo nesses modelos.Eu também preferi colocar pc1 e pc2 sempre juntos como variável de produtividade - sem fazer modelos separados
+
 ```{r}
 m0 <- glm.nb(audience_n ~ 1, data=dp)
 m1 <- glm.nb(audience_n ~ gender, data=dp)
 m2 <- glm.nb(audience_n ~ pc1 + pc2, data=dp)
 
 m3 <- glm.nb(audience_n ~ gender + pc1 + pc2, data=dp)
+
 m4 <- glm.nb(audience_n ~ gender*pc1 + gender*pc2, data=dp)
 
-AICtab(m0,m1,m2,m3,m4, base=T, weights=T)
+AICtab(m0,m1,m2,m3,m4,
+       base=T, weights=T) %>% kable(digits=2)
 ```
 
 ## Residual diagnostic
+
 Best model
 ```{r}
 hnp(m3)
 plot(simulateResiduals(m3))
 ```
+
 ## Model results
 
 ```{r echo=TRUE}
 summary(m3)
-performance::r2(mg3)
+performance::r2(m3)
 ```
+
+
 ```{r}
 my3 <- ggpredict(m3, terms=c("pc1","gender"))
-plot(my3) +
-  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
-  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
+my3 <- as.data.frame(my3)
+ggplot(my3, aes(x=x, y=predicted, col=group)) +
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high, fill=group), alpha=0.3,
+             colour = NA) +
+    geom_line()+
+  scale_color_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
+  scale_fill_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
    theme_cowplot() + ggtitle("") +
-  ylab("Audience (N)") + xlab("Productivity (PC1 axis)")
-```
-```{r}
-plot(my3) +
-  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
-  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
-   theme_cowplot() + ggtitle("") +
-  ylab("Audience (N)") + xlab("Productivity (PC1 axis)")
+  ylab("Audience (N)") + xlab("Productivity index (PC1 axis)")+
+  geom_point(data=dp, aes(x=pc1, y=audience_n, col=gender), alpha=0.6)
+ggsave("figures/audience_professor.jpeg", width=9, height = 6)  
 ```
 
 
+PC 2 - nao importante, nao "significativo"":
 
 ```{r}
 my3 <- ggpredict(m3, terms=c("pc2","gender"))
@@ -340,6 +365,95 @@ plot(my3) +
   scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
    theme_cowplot()
 ```
+
+
+# Figure audience
+
+```{r}
+prs <- as.data.frame(myg11b) %>% rename(affirm_action = facet,
+                                        position_cat=x)
+f1<- ggplot(data, aes(x=affirm_action, y=audience_n)) +
+  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
+             size=3,show.legend = F) +
+  facet_grid(~position_cat) +
+ #scale_color_manual(values = c("#b2abd2", "#fdb863")) +
+  scale_color_manual(values = c("#6D57CF","#FCA532")) +
+  scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
+  geom_pointrange(data=prs, aes(x=affirm_action, y=predicted,fill=group,
+                                ymax=conf.high, ymin=conf.low), alpha=1,
+             position=position_dodge(0.6), size=1, shape=21, col="black") +
+  ylab("Audience (N)")  +
+  xlab("Affirmative actions")+
+  labs(tag="A")
+  
+
+
+my3 <- ggpredict(m3, terms=c("pc1","gender"))
+my3 <- as.data.frame(my3)
+my3$prof <- "Professors only"
+f2 <- ggplot(my3, aes(x=x, y=predicted, col=group)) +
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high, fill=group), alpha=0.3,
+             colour = NA) +
+    geom_line(size=1.5)+
+  facet_grid(~prof)+
+  scale_color_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
+  scale_fill_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
+   theme_cowplot() + ggtitle("") +
+  ylab("Audience (N)") + xlab("Productivity index (PC1 axis)")+
+  geom_point(data=dp, aes(x=pc1, y=audience_n, col=gender), alpha=0.6,
+             size=2)+
+  theme(legend.position="none") +
+  labs(tag="C")
+
+
+f3<- plot_spacer()
+
+design <- "
+           1111
+           #22#
+"
+
+f1 + f2  + 
+  plot_layout( design=design, guides="collect")
+ggsave("figures/FIG_audience.jpeg", width=9, height = 8)  
+```
+
+
+```{r}
+
+p1<- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
+                      col.ind.sub="none",  geom="point",
+                      repel = TRUE) +
+  facet_grid(.~.)+
+  geom_vline(xintercept = 0, linetype="dashed") + 
+  geom_hline(yintercept = 0, linetype="dashed")+
+  scale_color_manual(name="gender",values = c("#6D57CF","#FCA532"))+
+  scale_shape(name="gender")+
+  scale_fill_manual(name="gender",values = c("#6D57CF","#FCA532"))+
+  labs(title="PCA professors' productivity", tag="B") +
+  xlab("PC1 (52%)") + ylab("PC2 (21%)") +
+  theme_cowplot() +
+  theme(legend.position="none",
+        plot.title = element_text(size=12, vjust=-5, hjust=0)) #+
+  #coord_cartesian(clip = "off")+
+  # scale_x_continuous(limits=c(-6,8), expand=c(0,0))+
+  # scale_y_continuous(limits=c(-4,8), breaks=c(-4,-2,0,2,4,6))
+  # annotate("rect", xmin=-6, xmax=8, ymin=7,ymax=8, fill="gray85")+
+  #annotate("text",label="Professors'productivity", x=0, y=7.5, fill="gray85")
+
+
+
+f1/(p1+f2) +plot_layout(guides="collect")
+ggsave("figures/FIG_audience_test.jpeg", width=9, height = 8)  
+```
+
+
+
+
+
+
+
+
 
 
 

@@ -53,9 +53,7 @@ table(data$position_cat, data$gender)
 ```
 
 
-
-
-Tidytext
+Formating tidytext 
 ```{r}
 tit <- data %>% dplyr::select(id,gender,position_cat, audience_n,
                               title_english) 
@@ -64,7 +62,9 @@ text_tok <- tit %>% unnest_tokens(output=word,
                                    input=title_english)
 ```
 
-stopwords - excluir word que não agregam como "and" "or" "the" "of" "in"
+- Excluding stopwords, e.g. "and" "or" "the" "of" "in".
+
+- Standardizing plurals.
 
 ```{r}
 # lista das stopwords em ingles
@@ -103,7 +103,8 @@ text$word[text$word %in% plural] <-
        1,nchar(text$word[text$word %in% plural])-1)
 ```
 
-Agrupando word parecidas 
+Grouping similar words:
+
 ```{r}
 lemma <- rbind(c("adaptive", "adaptation"),
                c("advancement", "advance"),
@@ -242,8 +243,7 @@ for (i in 1:dim(lemma)[1]){
 }
 ```
 
-
-contando as word
+## Counting words and proportions by gender
 
 ```{r}
 pala <- text %>%
@@ -254,7 +254,7 @@ palavra mais comuns
 ```{r}
 text %>%
   count(word, sort = TRUE) %>% 
-  filter(n>8)%>%
+  filter(n>9)%>%
   kable()
 ```
 
@@ -265,7 +265,6 @@ props <- text %>%
   group_by(gender) %>%
   mutate(proportion = n / sum(n)) %>% 
   pivot_wider(names_from = gender, values_from = c(proportion,n))
-
 ```
 
 ```{r}
@@ -280,12 +279,6 @@ ggplot(props, aes(x=proportion_M,, y=proportion_F),
   scale_color_gradient(low = "blue", high = "red") 
 ```
 
-
-```{r}
-ggplot(props, aes(x=proportion_M, y=proportion_F))+ geom_point(alpha=0.1)+
-  geom_abline(color = "gray40", lty = 2) +
-  geom_text(aes(label=word),check_overlap = TRUE)
-```
 
 ```{r}
 ggplot(props, aes(x=n_M, y=n_F))+ geom_point(alpha=0.1)+
@@ -329,7 +322,7 @@ ggsave("figures/title_wordFrequency.jpeg", units="in", width=7, height=7, dpi=30
 ```
 
 
-# word cloud
+### word cloud
 
 ```{r}
 textplot_wordcloud(x=dfm(tokens(text$word)))
@@ -343,8 +336,6 @@ par(new=T)
 textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="M"])),
                    col="#FCA532")
 ```
-
-
 
 # TF IDF
 
@@ -487,6 +478,18 @@ textplot_wordcloud(x=dfm(tokens(bievo$bigram[bievo$gender=="M"])), min_count = 1
                    col="#FCA532", rotation=0)
 ```
 
+```{r}
+bievo <- bigrams_stop %>% group_by(gender) %>%
+  filter(str_detect(bigram, "forest")) 
+
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(bievo$bigram[bievo$gender=="F"])), min_count = 1,
+                   col="#6D57CF", rotation=0)
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(bievo$bigram[bievo$gender=="M"])), min_count = 1,
+                   col="#FCA532", rotation=0)
+```
+
 ## TF_IDF bigram
 
 ```{r}
@@ -597,6 +600,103 @@ ggraph(alice_graph, layout = "fr") +
   theme_void() +
   labs(title = 'Bigrams (two-word combinations)"')
 ```
+
+
+## ONLY PROFESSORS: Counting words and proportions by gender 
+
+```{r}
+pala <- text %>%
+  count(word) 
+```
+
+palavra mais comuns
+```{r}
+text %>%
+  count(word, sort = TRUE) %>% 
+  filter(n>9)%>%
+  kable()
+```
+
+```{r}
+props <- text %>% filter(position_cat == "professor") %>%
+  count(gender, word) %>%
+  #filter(n>1) %>% # removendo word ditas apenas uma vez
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n))
+```
+
+```{r}
+library(scales); library(ggrepel)
+ggplot(props, aes(x=proportion_M,, y=proportion_F),
+       color=abs(proportion_F-proportion_M)) + 
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+  geom_text_repel(aes(label=word))+
+  #geom_text(aes(label=word),check_overlap = TRUE,vjust = 1.5) +
+  scale_x_log10(labels = percent_format(), limits=c(0.0005,0.03)) +
+  scale_y_log10(labels = percent_format(),limits=c(0.0005,0.03)) +
+  scale_color_gradient(low = "blue", high = "red") 
+```
+
+
+```{r}
+ggplot(props, aes(x=n_M, y=n_F))+ geom_point(alpha=0.1)+
+  geom_abline(color = "gray40", lty = 2) +
+  geom_text(aes(label=word),check_overlap = TRUE) +
+  xlim(-1,30) + ylim(-1,30)
+  
+```
+
+```{r}
+seleciona <- pala %>% arrange(desc(n)) %>% filter(n>8)
+
+props <- text %>% filter(word %in% seleciona$word) %>%
+  count(gender, word) %>%
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n))
+
+
+test <- props %>% arrange(desc(proportion_F), desc(proportion_M)) %>%
+  mutate(ntot = n_F + n_M) %>%
+  mutate(word = fct_reorder(word,(ntot),max))
+test$proportion_F <- test$proportion_F*-1
+
+test <- test [,1:3] %>% 
+  pivot_longer(2:3,names_to = "gender", values_to ="proportion")
+
+test %>% filter(!word %in% c("animal", "behavior", "opilion", "role",
+                                "science", "sexual","nework")) %>%
+ggplot(aes(x=proportion, y=word,fill=gender)) +
+  geom_col()+ ylab("") + xlab("Proportion")+
+  scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
+                    labels=c("F", "M"))+
+   geom_vline(xintercept = c(-0.1,-0.05,-0.02,0,0.02,0.05,0.10),
+              linetype="dotted",
+             col="darkgray") +
+  scale_x_continuous(breaks=c(-0.1,-0.05,0,0.05,0.10),
+                     labels = c(0.10,0.05,0,0.05,0.10))
+  
+ggsave("figures/title_wordFrequency_PROF.jpeg", units="in", width=7, height=7, dpi=300)
+```
+
+### word cloud
+
+```{r}
+textplot_wordcloud(x=dfm(tokens(text$word)))
+```
+
+```{r}
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="F"])),
+                   col="#6D57CF")
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="M"])),
+                   col="#FCA532")
+```
+
+
 
 # Abstract + title
 

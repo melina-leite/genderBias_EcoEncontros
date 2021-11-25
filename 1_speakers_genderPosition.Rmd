@@ -35,10 +35,10 @@ Talks from EcoEncontros Seminar series at the Graduate Program of Ecology in the
 
 See file `metadata.txt`, in folder `data` for more description and detail of the dataset.
 ```{r}
-data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
+data1 <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
                    header=T, as.is=T)
-data$date <- dmy(data$date)
-data$year <- year(data$date) 
+data1$date <- dmy(data1$date)
+data1$year <- year(data1$date) 
 #skimr::skim(data)
 ```
 
@@ -46,7 +46,7 @@ Excluding special events as round tables and discussions not related to a projec
 
 ```{r}
 IDs <- c(154, 250, 211, 289)
-data <- data %>% filter(!id %in% IDs)
+data <- data1 %>% filter(!id %in% IDs)
 ```
 
 For this specific analysis, excluding speakers that are not in academia ("others"), and keeping undergraduate students, MD and PhD in the group student. postdoc, professor or researcher*.
@@ -80,12 +80,14 @@ kable(pop)
 
 # Data description
 
+Descriptive totals, regardless of position: From `r length(unique(data1$id))` talks in 12 years,  there were `r length(unique(data$id))` talks with all the information we needed to conduct the analysis, as we excluded seminars with more than one presenter (round tables, and special seminars). In total, `r paste0(round(((data %>% tabyl(gender))[2,3]*100)), "%")` of the talks were given by men (n=`r (data %>% tabyl(gender))[2,2]`) and `r paste0(round(((data %>% tabyl(gender))[1,3]*100)), "%")` by women (n=`r (data %>% tabyl(gender))[1,2]`).
+
 ```{r}
 dim(data)
 ```
 
 ## Speakers data
-Proportion and number of male and female speakers per academic position.
+Proportion and number of male and female speakers per academic position
 
 ```{r}
 data %>% tabyl(position_cat, gender) %>% adorn_percentages("row") %>%
@@ -285,11 +287,12 @@ plot(simulateResiduals(mod3))
 
 ```{r}
 summary(mod7)
-performance::r2(mod7)
+performance::r2_nagelkerke(mod7)
 my7 <- ggpredict(mod7, terms=c("position_cat","affirm_action"))
 plot(my7) +
   geom_hline(yintercept = 0.5, linetype="dashed")
 ```
+The best fitted model includes only academic position and affirmative actions and the interaction between them (R2 = `r round(performance::r2_nagelkerke(mod7),2)`, Figure 1).
 
 Figure proportion of female speakers by position_cat e affirm_action
 

@@ -76,6 +76,8 @@ dim(data)
 
 # Data description
 
+Regarding the differences in the audience, there were `r length(data$audience_female!=NA)` talks with the number of attendees, allowing us to conduct the analysis, as we excluded seminars with more than one presenter (round tables, and special seminars).
+
 Audience by gender and academic position
 
 ```{r}
@@ -212,6 +214,8 @@ plot(simulateResiduals(mg10b))
 
 ## Models result
 
+The two equally plausible models for the audience included gender, academic position and affirmative actions as predictors, with the difference that the best fitted model includes an interaction of gender and academic position (R2 = `r round(performance::r2(mg11b)$R2_Nagelkerke,2)`)
+
 ```{r echo=TRUE}
 summary(mg11b)
 performance::r2(mg11b)
@@ -220,7 +224,6 @@ performance::r2(mg11b)
 Average audience before affirmative actions:`r exp(coef(mg11b)[1])`
 
 Average audience aftter affirmative actions: `r exp(coef(mg11b)[1]+ coef(mg11b)[5])`
-
 
 
 ```{r}
@@ -299,7 +302,7 @@ p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
 p1
 ggsave("figures/pca_biplot.jpeg", width=8, height = 7)  
 ```
-
+For the analysis specific for professor talks (N=`r length(dp$id)`), the PCA results show that all the productivity metrics for professors were highly correlated (Figure 2B) with the first axis (52%of variance explained) while the institution indexes composed the second PCA axis (21% of variation explained).
 
 Extracting PCA 2 first axes
 ```{r}
@@ -308,6 +311,8 @@ dp$pc2 <- pca1$ind$coord[,2]
 ```
 
 # Modeling
+
+We used generalized linear models with negative binomial distribution, given the large variation in the audience (range between `r paste0(range(data$audience_n)[1], " and ", range(data$audience_n)[2])`).
 
 **OBS interna (apagar depois)**: podem perguntar porque a gente nao colocou o affirm_action no modelo já que é importane para prever a audni6encia (como vimos no modelo anterior), eu até fiz uns testes, mas eu nao acho que devamos complicar este modelo, já que o foco aqui é comaprar professores quanto à produtividade, com hipótese clara de que dada uma mesma produtivdade ainda assim o mulheres vão ter menor audiencia que homens. Então é bom deixar isso claro no texto - de que estamos nessa análise focando apenas em genero e métrica de produtividade e por isso nao tem tempo nesses modelos.Eu também preferi colocar pc1 e pc2 sempre juntos como variável de produtividade - sem fazer modelos separados
 
@@ -338,6 +343,7 @@ plot(simulateResiduals(m3))
 summary(m3)
 performance::r2(m3)
 ```
+We used the first and second PCA axis as predictors together with gender to explain the professor's audience, and found that, as expected, audience increases with productivity index (first PCA axis) but female professors still presented average audience *1.3* times smaller than male professors (R2 of the best fitting model = `r performance::r2(m3)`).
 
 
 ```{r}

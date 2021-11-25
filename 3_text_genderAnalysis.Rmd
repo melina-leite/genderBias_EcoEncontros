@@ -29,8 +29,6 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 ```
 
 
-
-
 # Title analysis
 
 ```{r}
@@ -49,6 +47,7 @@ data <- data %>% filter(!id %in% IDs) %>% filter(!is.na(title_english))
 ```
 
 ```{r}
+table(data$gender)
 table(data$position_cat, data$gender)
 ```
 
@@ -245,6 +244,15 @@ for (i in 1:dim(lemma)[1]){
 
 ## Counting words and proportions by gender
 
+
+Removing stopwords, we keep `r dim(text)[1]` words.
+```{r}
+table(text$gender)
+table(text$position_cat, text$gender)
+```
+
+
+
 ```{r}
 pala <- text %>%
   count(word) 
@@ -264,28 +272,83 @@ props <- text %>%
   #filter(n>1) %>% # removendo word ditas apenas uma vez
   group_by(gender) %>%
   mutate(proportion = n / sum(n)) %>% 
+  pivot_wider(names_from = gender, values_from = c(proportion,n)) %>%
+  mutate(abs.dif.p = abs(proportion_F-proportion_M),
+         rel.dif.p = pmax(proportion_F, proportion_M)/
+           pmin(proportion_F, proportion_M),
+         abs.dif.n = abs(n_F-n_M)) %>%
+  mutate(label.p= ifelse(abs.dif.p>=0.003,word,NA),
+         label.n= ifelse(abs.dif.n>=4,word,NA))
+```
+
+```{r}
+library(scales); library(ggrepel)
+ggplot(props, aes(x=proportion_M,, y=proportion_F,
+       color=abs.dif.p)) + 
+  geom_abline(color = "gray40", lty = 2) +
+  geom_point(size=2.5, alpha=0.5)+
+  geom_text_repel(aes(label=label.p))+
+ # geom_jitter(alpha = 0.5, size = 2.5, width = 0.3, height = 0.3) +
+  #geom_text(aes(label=label),check_overlap = TRUE,vjust = 1.5) +
+  scale_x_log10(name="Most used words Males",
+                labels = percent_format(), limits=c(0.0005,0.03)) +
+  scale_y_log10(name="Most used words Female",
+                labels = percent_format(),limits=c(0.0005,0.03)) +
+  scale_color_gradient(name="Abs Diff",low = "blue", high = "red",
+                       labels=percent_format()) 
+ # geom_smooth(method="lm")
+```
+
+
+Words that are close to the line in these plots have similar frequencies in both genders. Words that are far from the line are words that are found more in one set of texts than another.
+
+
+Correlation of word frequeency use between gender:
+```{r}
+cor.test(props$proportion_F, props$proportion_M)
+```
+Highly correlated -> it means they tend to use the same frequency of main words
+
+
+```{r}
+props2 <- text %>% filter(word %in% props$label.p) %>%
+  count(gender, word) %>%
+  group_by(gender) %>%
+  mutate(proportion = n / sum(n)) %>% 
   pivot_wider(names_from = gender, values_from = c(proportion,n))
-```
 
-```{r}
-library(scales)
-ggplot(props, aes(x=proportion_M,, y=proportion_F),
-       color=abs(proportion_F-proportion_M)) + 
-  geom_abline(color = "gray40", lty = 2) +
-  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
-  geom_text(aes(label=word),check_overlap = TRUE,vjust = 1.5) +
-  scale_x_log10(labels = percent_format(), limits=c(0.0005,0.03)) +
-  scale_y_log10(labels = percent_format(),limits=c(0.0005,0.03)) +
-  scale_color_gradient(low = "blue", high = "red") 
-```
+test <- props2 %>% filter(!is.na(label.p)) %>%
+  arrange(desc(proportion_F), desc(proportion_M)) %>%
+  mutate(ntot = n_F + n_M) %>%
+  mutate(word = fct_reorder(word,(ntot),max))
+test$proportion_F <- test$proportion_F*-1
 
+test <- test [,1:3] %>% 
+  pivot_longer(2:3,names_to = "gender", values_to ="proportion")
 
-```{r}
-ggplot(props, aes(x=n_M, y=n_F))+ geom_point(alpha=0.1)+
-  geom_abline(color = "gray40", lty = 2) +
-  geom_text(aes(label=word),check_overlap = TRUE) +
-  xlim(-1,30) + ylim(-1,30)
+test  %>%
+ggplot(aes(x=proportion, y=word,fill=gender)) +
+  geom_col()+ ylab("") + xlab("Proportion")+
+  scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
+                    labels=c("F", "M"))+
+   geom_vline(xintercept = c(-0.02,-0.01,0,0.01,0.02),
+              linetype="dotted",
+             col="darkgray") +
+  scale_x_continuous(breaks=c(-0.02,0,0.02),limits=c(-0.025,0.025),
+                     labels = c(0.02, 0, 0.02))
   
+#ggsave("figures/title_wordFrequency.jpeg", units="in", width=7, height=7, dpi=300)
+```
+
+```{r}
+ggplot(props, aes(x=n_M, y=n_F,
+       color=abs.dif.n)) + 
+  geom_abline(color = "gray40", lty = 2) +
+  geom_point(size=2.5, alpha=0.5)+
+  geom_text_repel(aes(label=label.n))+
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_gradient(name="Abs Diff",low = "blue", high = "red") 
 ```
 
 ```{r}
@@ -296,7 +359,6 @@ props <- text %>% filter(word %in% seleciona$word) %>%
   group_by(gender) %>%
   mutate(proportion = n / sum(n)) %>% 
   pivot_wider(names_from = gender, values_from = c(proportion,n))
-
 
 test <- props %>% arrange(desc(proportion_F), desc(proportion_M)) %>%
   mutate(ntot = n_F + n_M) %>%
@@ -337,6 +399,9 @@ textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="M"])),
                    col="#FCA532")
 ```
 
+
+
+#
 # TF IDF
 
 ```{r}
@@ -698,10 +763,10 @@ textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="M"])),
 
 
 
-# Abstract + title
+# Abstract
 
 ```{r}
-data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
+data <- read.table("data/presentations_PPGE_2008-2019_v2.csv", sep=",",
                    header=T, as.is=T)
 data$date <- dmy(data$date)
 data$year <- year(data$date) 
@@ -709,38 +774,45 @@ data$year <- year(data$date)
 ```
 
 Excluding special events as round tables and discussions not related to a project or study presented by someone.
-
-Using abstracts in portuguese
 ```{r}
 IDs <- c(154, 250, 211, 289)
-data <- data %>% filter(!id %in% IDs) %>% filter(!is.na(abstract_original),
-                                                 abstract_language=="port") 
+data <- data %>% filter(!id %in% IDs)
 ```
+
+
+Using abstracts in English
+```{r}
+data <- data  %>% filter(!is.na(abstract_english)) 
+```
+
+
 
 ```{r}
 table(data$gender)
+table(data$position_cat,data$gender)
 ```
-
-
 
 
 Tidytext
 ```{r}
 tit <- data %>% dplyr::select(id,gender,position_cat, audience_n,
-                             abstract_original, title_original) %>%
-  mutate(text = paste(title_original, abstract_original))
+                             abstract_english, title_english) %>%
+  mutate(text = paste(title_english, abstract_english))
 
 text_tok <- tit %>% unnest_tokens(output=word,
                                    input=text)
 
-stop_w <- tibble(word = stopwords("pt"))
+stop_w <- tibble(word = stopwords("en"))
 
 #retirar do corpus as stopwords
 text <- text_tok %>% 
-  anti_join(stop_w, by="word")  %>% 
-  filter(!word %in% c("é", "sobre", "ser"))
+  anti_join(stop_w, by="word")  
 ```
 
+```{r}
+table(text$gender)
+table(text$position_cat ,text$gender)
+```
 
 
 ```{r}
@@ -817,7 +889,7 @@ ggplot(aes(x=proportion, y=word,fill=gender)) +
   scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
                     labels=c("F", "M"))
   
-ggsave("figures/title_wordFrequency.jpeg", units="in", width=7, height=7, dpi=300)
+#ggsave("figures/title_wordFrequency.jpeg", units="in", width=7, height=7, dpi=300)
 ```
 
 
@@ -861,4 +933,60 @@ text_id %>%
   theme_minimal()
 ```
 
+# Topic model
+
+```{r}
+library(topicmodels)
+
+matext <- text %>% count(id, gender, word) %>% mutate(id = paste(id, gender, sep="_")) %>%
+  select(-gender) %>%
+                cast_dtm(term=word,document=id,value=n)
+
+ap_lda2 <- LDA(matext, k = 2, control = list(seed = 1234))
+ap_lda3 <- LDA(matext, k = 3, control = list(seed = 1234))
+ap_lda4 <- LDA(matext, k = 4, control = list(seed = 1234))
+bbmle::AICtab(ap_lda2, ap_lda3, ap_lda4,base=T)
+```
+
+word-topic probabilities
+```{r}
+library(tidytext)
+ap_topics <- tidy(ap_lda, matrix = "beta")
+ap_top_terms <- ap_topics %>%
+      group_by(topic) %>%
+      top_n(10, beta) %>%
+      ungroup() %>%
+      arrange(topic, -beta)
+ap_top_terms %>%
+mutate(term = reorder(term, beta)) %>% ggplot(aes(term, beta, fill = factor(topic))) + geom_col(show.legend = FALSE) +
+facet_wrap(~ topic, scales = "free") + coord_flip()
+```
+
+Document-topic probabilities
+
+```{r}
+ap_documents <- tidy(ap_lda, matrix = "gamma")
+classifi <- ap_documents %>% mutate(gender = substr(document, nchar(document), nchar(document))) %>%
+  group_by(document,gender) %>%
+      top_n(1, gamma) 
+
+table(classifi$gender, classifi$topic)
+
+library(janitor)
+classifi %>% tabyl(gender, topic) %>% adorn_percentages() %>% 
+  adorn_pct_formatting(digits = 0) 
+```
+
+```{r}
+
+```
+
+
+```{r}
+classifi %>%
+ # mutate(title = reorder(title, gamma * topic)) %>%
+  ggplot(aes(as.character(topic), gamma)) +
+  geom_boxplot() +
+  facet_wrap(~ gender)
+```
 

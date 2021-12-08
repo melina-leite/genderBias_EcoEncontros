@@ -42,7 +42,7 @@ data$year <- year(data$date)
 
 Excluding special events as round tables and discussions not related to a project or study presented by someone.
 ```{r}
-IDs <- c(154, 250, 211, 289)
+IDs <- c(154, 250, 211, 289, 230, 167)
 data <- data %>% filter(!id %in% IDs)
 ```
 
@@ -78,14 +78,15 @@ text <- text %>% slice(-c(1:290)) %>% # number and some symbols
 
 
 # solving some simple plurals
-plural <- c("actions","advances", "adaptations", "amphibians", "animals", "ants","anurans",
-            "applications","approaches", "bees","builds", "birds",
-            "cerrados","challenges",
-            "continents","crops", 
+plural <- c("actions","advances", "adaptations", "amphibians", "animals",
+            "ants","anurans","abundances","adjustments","adults","affects",
+            "applications","approaches", "bees","builds", "birds","palms",
+            "cerrados","challenges", "outputs",  "queens", "techniques",
+            "continents","crops", "consequences", "questions",
             "decisions","declines","determines","determinants", "defenses",
             "dynamics",
             "economics", "ecosystems","environments", "experiences",
-            "forests",
+            "forests","grasslands",
             "genetics","gifts","gradients","guides","impacts",
             "increases","interactions","lives",
             "landscapes","males","mammals", "mangroves","models","movements",
@@ -106,7 +107,9 @@ text$word[text$word %in% plural] <-
 
 ```{r}
 lemma <- rbind(c("adaptive", "adaptation"),
+               c("abilities","ability"),
                c("advancement", "advance"),
+                  c("absent","absence"),
                c("agricultural", "agriculture"),
                c("agro", "agriculture" ),
                c("amazonia","amazon" ),
@@ -165,6 +168,9 @@ lemma <- rbind(c("adaptive", "adaptation"),
                c("functional", "function"),
                c("functionally", "function"),
                c("functioning", "function"),
+               c("frequencies", "frequency"),
+               c("frequently", "frequency"),
+               c("frequent", "frequency"),
                c("geographical", "geographic"),
                c("heterogeneties", "heterogeneity"),
                c("heterogeneous", "heterogeneity"),
@@ -243,24 +249,25 @@ for (i in 1:dim(lemma)[1]){
 ```
 
 
-# WORDS - aLl data
+# WORDS - all data
 
 ```{r}
 table(text$gender)
 table(text$position_cat ,text$gender)
 ```
 
-Mean number of words by abstract
+Mean number of words by title+abstract
 ```{r}
 text %>% count(id,gender) %>%
   ggplot(aes(x=gender, y=n)) + 
   geom_violin() + geom_boxplot(width=0.2)+
+  ylab("Number of words in title + abtract")
   ggbeeswarm::geom_quasirandom(size=3, shape=21) 
 ```
 
 
 
-20 palavra mais comuns
+20 more common workds
 ```{r}
 text %>%
   count(word, sort = TRUE) %>% 
@@ -319,7 +326,7 @@ ggplot(props, aes(x=proportion_M,, y=proportion_F,
 ggsave("figures/abstract_wordFreq.jpg", height = 5, width=7)
 ```
 
-Words that are close to the dashed  line in these plots have similar frequencies in both genders. Words that are far from the line are words that are found more in one set of texts than another.
+Words that are close to the dashed line have similar frequencies in both genders. Words that are far from the line are words that are found more in one set of texts than another.
 
 Legend: absolute differences in the frequency of the word by males and females. Differences above 0.3% are also indicated in text.
 
@@ -353,7 +360,7 @@ ggplot(prop2, aes(x=proportion, y=word,fill=gender)) +
 ggsave("figures/abstract_wordFreq_barplot.jpeg", units="in", width=7, height=7, dpi=300)
 ```
 
-# TF IDF
+## TF IDF
 
 ```{r}
 text_id <- text %>% count(gender, word) %>% 
@@ -377,7 +384,7 @@ text_id %>%
 
 
 
-# WORDS professors only data
+# WORDS - professors only data
 
 ```{r}
 textP <- text %>% filter(position_cat == "professor")
@@ -393,7 +400,7 @@ textP %>% count(id,gender) %>%
   ggbeeswarm::geom_quasirandom(size=3, shape=21) 
 ```
 
-20 palavra mais comuns
+20 most commmon words
 ```{r}
 textP %>%
   count(word, sort = TRUE) %>% 
@@ -401,7 +408,7 @@ textP %>%
   kable()
 ```
 
-## Counting words Frequency by gender
+## Words Frequency by gender
 
 ```{r}
 propsP <- textP %>%
@@ -461,16 +468,37 @@ ggplot(propP2, aes(x=proportion, y=word,fill=gender)) +
   geom_col()+ ylab("") + xlab("Proportion")+
   scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
                     labels=c("F", "M"))+
-   geom_vline(xintercept = c(-0.03,-0.02,-0.01,0,0.01,0.02,0.03),
+   geom_vline(xintercept = c(-0.02,-0.01,0,0.01,0.02),
               linetype="dotted",
              col="darkgray") +
-  scale_x_continuous(breaks=c(-0.03,-0.02,-0.01,0,0.01,0.02,0.03),
-                     labels = c(0.03,0.02,-0.01,0,0.01,0.02,0.03))
+  scale_x_continuous(breaks=c(-0.02,-0.01,0,0.01,0.02),
+                     labels = c(0.02,0.01,0,0.01,0.02))
   
 ggsave("figures/abstract_wordFreq_barplot_Prof.jpeg", units="in", width=7, height=7, dpi=300)
 ```
 
 
+## TF IDF
+
+```{r}
+text_idP <- textP %>% count(gender, word) %>% 
+  bind_tf_idf(word, gender, n) %>%
+  arrange(desc(tf_idf))
+```
+
+10 "exclusive" words for each group
+```{r}
+text_idP$word <- as.factor(text_idP$word)
+text_idP %>%
+  group_by(gender) %>% 
+  arrange(desc(tf_idf)) %>% 
+  top_n(10, tf_idf) %>%  
+  ggplot(aes(x = tf_idf, y = reorder(word, tf_idf), fill = gender)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~gender, scales = "free") +
+  theme_minimal()
+```
 
 # Topic model - all data
 
@@ -480,13 +508,17 @@ matext <- text %>% count(id, gender, word) %>% mutate(id = paste(id, gender, sep
                 cast_dtm(term=word,document=id,value=n)
 ```
 
-3 models with different number of topics, comparing AIC - cross validation is better? loo
+Choosing number of topics: comparing AIC
+
 ```{r}
 ap_lda2 <- LDA(matext, k = 2, control = list(seed = 1234))
 ap_lda3 <- LDA(matext, k = 3, control = list(seed = 1234))
 ap_lda4 <- LDA(matext, k = 4, control = list(seed = 1234))
-bbmle::AICtab(ap_lda2, ap_lda3, ap_lda4,base=T)
+ap_lda5 <- LDA(matext, k = 5, control = list(seed = 1234))
+bbmle::AICtab(ap_lda2, ap_lda3, ap_lda4,ap_lda5, base=T)
 ```
+
+two-topics model seems the most plausible model
 
 ## Word-topic probabilities
 
@@ -503,7 +535,11 @@ mutate(term = reorder(term, beta)) %>% ggplot(aes(term, beta, fill = factor(topi
 facet_wrap(~ topic, scales = "free") + coord_flip()
 ```
 
-Document-topic probabilities - classifying the abstracts
+
+
+## Document-topic probabilities - classifying the abstracts
+
+and comparing the two groups by gender (if there is a difference in frequency)
 
 ```{r}
 ap_documents <- tidy(ap_lda2, matrix = "gamma")
@@ -513,8 +549,9 @@ classifi <- ap_documents %>% mutate(gender = substr(document, nchar(document), n
 
 table(classifi$gender, classifi$topic)
 
-classifi %>% tabyl(gender, topic) %>% adorn_percentages() %>% 
-  adorn_pct_formatting(digits = 0) 
+classifi %>% tabyl(gender, topic) %>% adorn_percentages() %>%
+  adorn_pct_formatting(digits = 0) %>%
+  adorn_ns() %>% kable()
 ```
 
 
@@ -526,10 +563,13 @@ classifi %>%
   facet_wrap(~ gender)
 ```
 
+## Chi-square test 
+```{r}
+chisq.test(classifi$gender, classifi$topic)
+```
 
 
-
-# Topic model Professors only
+# Topic model - Professors only
 
 ```{r}
 matextP <- textP %>% 
@@ -539,48 +579,54 @@ matextP <- textP %>%
 ```
 
 ```{r}
-ap_lda2 <- LDA(matextP, k = 2, control = list(seed = 1234))
-ap_lda3 <- LDA(matextP, k = 3, control = list(seed = 1234))
-ap_lda4 <- LDA(matextP, k = 4, control = list(seed = 1234))
-bbmle::AICtab(ap_lda2, ap_lda3, ap_lda4,base=T)
+ap_lda2P <- LDA(matextP, k = 2, control = list(seed = 1234))
+ap_lda3P <- LDA(matextP, k = 3, control = list(seed = 1234))
+ap_lda4P <- LDA(matextP, k = 4, control = list(seed = 1234))
+bbmle::AICtab(ap_lda2P, ap_lda3P, ap_lda4P,base=T)
 ```
 
-word-topic probabilities
+## word-topic probabilities
 ```{r}
-ap_topics <- tidy(ap_lda2, matrix = "beta")
-ap_top_terms <- ap_topics %>%
+ap_topicsP <- tidy(ap_lda2P, matrix = "beta")
+ap_top_termsP <- ap_topicsP %>%
       group_by(topic) %>%
       top_n(10, beta) %>%
       ungroup() %>%
       arrange(topic, -beta)
-ap_top_terms %>%
+ap_top_termsP %>%
 mutate(term = reorder(term, beta)) %>% ggplot(aes(term, beta, fill = factor(topic))) + geom_col(show.legend = FALSE) +
 facet_wrap(~ topic, scales = "free") + coord_flip()
 ```
 
-Document-topic probabilities
+## Document-topic probabilities
 
 ```{r}
-ap_documents <- tidy(ap_lda2, matrix = "gamma")
-classifi <- ap_documents %>% mutate(gender = substr(document, nchar(document), nchar(document))) %>%
+ap_documentsP <- tidy(ap_lda2P, matrix = "gamma")
+classifiP <- ap_documentsP %>% mutate(gender = substr(document, nchar(document), nchar(document))) %>%
   group_by(document,gender) %>%
       top_n(1, gamma) 
 
-table(classifi$gender, classifi$topic)
+table(classifiP$gender, classifiP$topic)
 
 library(janitor)
-classifi %>% tabyl(gender, topic) %>% adorn_percentages() %>% 
-  adorn_pct_formatting(digits = 0) 
+classifiP %>% tabyl(gender, topic) %>% adorn_percentages() %>% 
+  adorn_pct_formatting(digits = 0) %>%
+  adorn_ns() %>% kable()
 ```
 
 
 ```{r}
-classifi %>%
+classifiP %>%
  # mutate(title = reorder(title, gamma * topic)) %>%
   ggplot(aes(as.character(topic), gamma)) +
   geom_boxplot() +
   geom_violin()+
   facet_wrap(~ gender)
+```
+
+Chi-square test 
+```{r}
+chisq.test(classifiP$gender, classifiP$topic)
 ```
 
 
@@ -635,7 +681,7 @@ affc %>% group_by(id, gender) %>%
 ```{r}
 affword <- get_sentiments("afinn")
 
-affc <- textP %>%
+affcP <- textP %>%
   count(id,gender,word, sort = TRUE) %>%
   inner_join(affword, "word")
 ```
@@ -643,7 +689,7 @@ affc <- textP %>%
 Calculating the mean of the scores for each abtract (weighted by number of time the word appears) by gender:
 
 ```{r}
-affc %>% group_by(id, gender) %>%
+affcP %>% group_by(id, gender) %>%
   summarise(mean.score = mean(value),
             weig.score = weighted.mean(value,n)) %>%
   ggplot(aes(x=gender,y=weig.score)) +
@@ -661,7 +707,7 @@ As classificações das palavras não me parecem muito acuradas com a linguagem 
 Precisa saber como ponderar pelo total de palavras.
 
 ### All data
-```{r}
+```{r, fig.height=8}
 nrcword <- get_sentiments("nrc")
 
 nrc <- text %>%
@@ -678,7 +724,7 @@ ggplot(nrc, aes(x=gender, y=n)) +
 
 ### Professors
 
-```{r}
+```{r, fig.height=8}
 nrcword <- get_sentiments("nrc")
 
 nrc <- textP %>%

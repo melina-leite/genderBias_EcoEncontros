@@ -21,6 +21,11 @@ library(janitor)
 library(tidytext)
 library(scales); library(ggrepel)
 library(topicmodels)
+library(lubridate)
+library(tidytext)
+library(topicmodels)
+library(tm); 
+library(quanteda); library(quanteda.textplots)
 
 opts_chunk$set(fig.align = 'center', warning = FALSE, message = FALSE, error = FALSE, echo=T, cache=F)
 options(formatR.arrow = TRUE, width = 90, help_type = "html")
@@ -454,7 +459,7 @@ text_idP <- text %>% filter(position_cat== "professor") %>%
 
 
 ```{r}
-text_idP$word <- as.factor(text_id$word)
+text_idP$word <- as.factor(text_idP$word)
 text_idP %>%
   group_by(gender) %>% 
   arrange(desc(tf_idf)) %>% 

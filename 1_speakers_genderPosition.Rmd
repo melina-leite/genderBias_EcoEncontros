@@ -344,6 +344,7 @@ ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
              position=position_dodge(0.6)) +
   geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
   scale_color_manual(name="Ações \n afirmativas", 
+                     label = c("antes", "depois"),
                      values = c("goldenrod", "green4")) +
   scale_x_discrete(labels=c("Pós-graduande", "Pós-doc", "Docente"))+
   ylab("Proporção de mulheres palestrantes")+

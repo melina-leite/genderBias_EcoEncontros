@@ -236,6 +236,11 @@ Complete figure
 ```{r}
 prs <- as.data.frame(myg11b) %>% rename(affirm_action = facet)
 colnames(prs)[1] <- "position_cat"
+kable(prs , digits = 0)
+```
+
+
+```{r}
 ggplot(data, aes(x=position_cat, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
@@ -266,7 +271,7 @@ ggplot(data, aes(x=affirm_action, y=audience_n)) +
   scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
   geom_pointrange(data=prs, aes(x=affirm_action, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
-             position=position_dodge(0.6), size=1, shape=21, col="black") +
+             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
     xlab("Ações afirmativas") + ylab("Audiência (N)") 
 
 
@@ -274,6 +279,35 @@ ggsave("figures/audience_speakers_b_port.jpeg", width=8, height = 4)
 ```
 
 
+figura apresentacao IB-mulheres
+```{r}
+ggplot(data=prs, aes(x=position_cat, y=predicted,fill=group,
+                                ymax=conf.high, ymin=conf.low)) +
+  geom_pointrange(, alpha=1,
+             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
+  facet_grid(~affirm_action, labeller= as_labeller(c(before = "Antes",
+                                                   after = "Depois"))) +
+  scale_color_manual(values = c("#6D57CF","#FCA532")) +
+  scale_x_discrete(labels =  c("Pós-graduande", "Pós-doc", "Docente"))+
+  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+    xlab("") + ylab("Audiência (N)") 
+
+ggsave("figures/audience_speakers_C_port.jpeg", width=8, height = 4)  
+```
+
+```{r}
+prs %>% filter(position_cat == "professor", affirm_action == "after") %>%
+ggplot(aes(x=position_cat, y=predicted,fill=group,
+                                ymax=conf.high, ymin=conf.low)) +
+  geom_pointrange(alpha=1,
+             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
+  scale_color_manual(values = c("#6D57CF","#FCA532")) +
+  scale_x_discrete(labels =  c("Docente"))+
+  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+    xlab("") + ylab("Audiência (N)") 
+
+ggsave("figures/audience_speakers_D_port.jpeg", width=4, height = 4)  
+```
 
 
 ```{r echo=TRUE}
@@ -285,6 +319,8 @@ myg10b <- ggpredict(mg10b, terms=c("position_cat","gender", "affirm_action"))
 plot(myg10b) +
   scale_color_manual(values = c("#b2abd2", "#fdb863"))
 ```
+
+
 
 
 # Only professors - productivity metrics
@@ -312,15 +348,15 @@ p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
                       repel = TRUE) +
   geom_vline(xintercept = 0, linetype="dashed") + 
   geom_hline(yintercept = 0, linetype="dashed")+
-  scale_color_manual(name="gender",values = c("#6D57CF","#FCA532"))+
-  scale_shape(name="gender")+
-  scale_fill_manual(name="gender",values = c("#6D57CF","#FCA532"))+
-  ggtitle("PCA biplot for professor's productivy metrics") +
-  xlab("PC1 (52%)") + ylab("PC2 (21%") +
+  scale_color_manual(name="Gênero",values = c("#6D57CF","#FCA532"))+
+  scale_shape(name="Gênero")+
+  scale_fill_manual(name="Gênero",values = c("#6D57CF","#FCA532"))+
+  ggtitle("Métricas desempenho professores") +
+  xlab("PC1 (52%)") + ylab("PC2 (21%)") +
   theme_cowplot()
 
 p1
-ggsave("figures/pca_biplot.jpeg", width=8, height = 8)  
+ggsave("figures/pca_biplot.jpeg", width=6, height = 6)  
 ```
 For the analysis specific for professor talks (N=`r length(dp$id)`), the PCA results show that all the productivity metrics for professors were highly correlated (Figure 2B) with the first axis (52%of variance explained) while the institution indexes composed the second PCA axis (21% of variation explained).
 

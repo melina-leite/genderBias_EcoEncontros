@@ -415,6 +415,17 @@ textP <- text %>% filter(position_cat == "professor")
 table(textP$gender)
 ```
 
+```{r}
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(textP$word[textP$gender=="F"])),
+                   col="#6D57CF")
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(textP$word[textP$gender=="M"])),
+                   col="#FCA532")
+```
+
+
+
 Mean number of words by abstract
 ```{r}
 textP %>% count(id,gender) %>%

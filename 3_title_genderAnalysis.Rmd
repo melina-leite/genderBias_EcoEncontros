@@ -349,7 +349,18 @@ ggsave("figures/title_wordFreq_barplot.jpeg", units="in", width=7, height=7, dpi
 ```
 
 
-### PROFESSOR Word frequencies by gender
+## PROFESSOR Word frequencies by gender
+
+```{r}
+textprof <- text[text$position_cat == "professor",]
+par(mfrow=c(1,2))
+textplot_wordcloud(x=dfm(tokens(textprof$word[textprof$gender=="F"])),
+                   col="#6D57CF")
+par(new=T)
+textplot_wordcloud(x=dfm(tokens(textprof$word[textprof$gender=="M"])),
+                   col="#FCA532")
+```
+
 
 ```{r}
 propsP <- text %>% filter(position_cat == "professor")%>%
@@ -393,6 +404,30 @@ cor.test(propsP$proportion_F, propsP$proportion_M)
 ```
 
 No correlation
+
+20 palavras mais usadas
+```{r}
+propsP %>% pivot_longer(cols=2:3, names_to = "gender", values_to = "prop") %>%
+  arrange(desc(prop)) %>% slice_head(n=20) %>% pull(label) %>% unique() -> pala
+
+propsP3 <- propsP %>% filter(word %in% pala) %>%
+  arrange(desc(proportion_F), desc(proportion_M)) %>%
+  mutate(ntot = n_F + n_M) %>%
+  mutate(word = fct_reorder(word,(ntot),max),
+         proportion_F = proportion_F*-1) %>%
+  pivot_longer(2:3,names_to = "gender", values_to ="proportion")
+
+ggplot(propsP3, aes(x=proportion, y=word,fill=gender)) +
+  geom_col()+ ylab("") + xlab("Proportion")+
+  scale_fill_manual(name="gender", values=c("#6D57CF","#FCA532"),
+                    labels=c("F", "M"))+
+   geom_vline(xintercept = c(-0.03,-0.02,-0.01,0,0.01,0.02,0.03),
+              linetype="dotted",
+             col="darkgray") +
+  scale_x_continuous(breaks=c(-0.03,-0.02,-0.01,0,0.01,0.02,0.03),
+                     labels = c(0.03,0.02,-0.01,0,0.01,0.02,0.03))
+```
+
 
 
 20 words with the largest differences in frequency

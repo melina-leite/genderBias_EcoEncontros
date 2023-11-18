@@ -32,49 +32,17 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 Data description and summary in script `0_data_summary`.
 
 ```{r}
-data1 <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
-                   header=T, as.is=T)
-data1$date <- dmy(data1$date)
-data1$year <- year(data1$date) 
+load("data_clean/data_proportion.Rdata")
+load("data_clean/data_pop_ppge.Rdata")
+data <- data_p
 ```
 
-Excluding special events as round tables and discussions not related to a project or study presented by someone.
-
-```{r}
-IDs <- c(154, 211, 212, 230, 244, 250, 289, 319)
-data <- data1 %>% filter(!id %in% IDs)
-```
-
-Excluding talks from non-academic professionals.
-
-```{r}
-data <- data %>% filter(position_cat != "others")
-data$position_cat <- fct_relevel(data$position_cat, "student", 
-                                 "postdoc","professor")
-```
 
 Creating dummy column to indicate if the speaker is a female (1) or not (0)
 ```{r}
 data$fem <- 1
 data$fem[data$gender == "M"] <- 0 
 ```
-
-Including varible to indicated the affirmative actions period
-```{r}
-data$affirm_action <- ifelse(data$year<2018,"before", "after")
-data$affirm_action <- fct_relevel(data$affirm_action,"before", "after")
-```
-
-There were `r table(data$affirm_action)[1]` seminars before and  `r table(data$affirm_action)[2]` after the affirmative actions.
-
-
-
-Population data from PPGE-USP from 2008-2019, to create sex ratio per year and academic position.
-```{r}
-pop <- read.table("data/pop_PPGE_2008-2019.csv", sep=",",
-                   header=T, as.is=T)
-```
-
 
 
 # Modeling
@@ -100,29 +68,6 @@ kable(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T), digits
 #as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
 #  mutate_at(c(1,2,4), round, digits=2) %>% kable()
 ```
-
-```{r, echo=T}
-library(lme4)
-mod0 <- glmer(fem ~ 1 + ratioFcat + (1|year), family=binomial, data= data)
-mod1 <- glmer(fem ~ scale(year) + ratioFcat+ (1|year), family=binomial, data= data)
-mod2 <- glmer(fem ~ affirm_action + ratioFcat+ (1|year), family=binomial, data= data)
-mod3 <- glmer(fem ~ position_cat + ratioFcat+ (1|year), family=binomial, data= data)
-
-mod4 <- glmer(fem ~ position_cat + ratioFcat+ scale(year) + (1|year), 
-              family=binomial, data= data)
-mod5 <- glmer(fem ~ position_cat*scale(year)+ ratioFcat + (1|year), 
-              family=binomial, data= data)
-mod6 <- glmer(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
-              family=binomial, data= data)
-mod7 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
-              family=binomial, data= data)
-
-kable(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T), digits=2)
-
-#as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
-#  mutate_at(c(1,2,4), round, digits=2) %>% kable()
-```
-
 
 
 Best model is the one with interaction between academic position and affirmative actions (as time event), but it is equaly plausible with the model with year as time event and only academic position.
@@ -243,6 +188,39 @@ modc7 <- glm(fem ~ position_cat*affirm_action + ratioFcat, family=binomial,
 AICtab(modc0,modc1,modc2,modc3,modc4,modc5,modc6,modc7, base=T, weights=T)
 ```
 
+
+```{r, echo=T}
+library(lme4)
+mod0 <- glmer(fem ~ 1 + ratioFcat + (1|year), family=binomial, data= data)
+mod2 <- glmer(fem ~ affirm_action + ratioFcat+ (1|year), family=binomial, data= data)
+mod3 <- glmer(fem ~ position_cat + ratioFcat + (1|year), family=binomial, data= data)
+mod6 <- glmer(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod7 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+
+mod8 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (position_cat|year), 
+              family=binomial, data= data)
+
+
+kable(AICtab(mod0,mod2,mod3,mod6,mod7,mod8, base=T, weights=T), digits=2)
+
+#as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
+#  mutate_at(c(1,2,4), round, digits=2) %>% kable()
+summary(mod7)
+```
+
+
+```{r}
+plot(simulateResiduals(mod7))
+summary(mod7)
+performance::r2(mod7)
+myc7 <- ggpredict(mod7, terms=c("position_cat","affirm_action",
+                                 "ratioFcat[1]"))
+plot(myc7) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
 Similar results as without the ratio of females in the PPGE population
 
 ## Residual diagnostic of the selected models
@@ -250,7 +228,7 @@ Similar results as without the ratio of females in the PPGE population
 All equaly plausible models presented satisfactory residual diagnostic.
 ```{r}
 par(mfrow=c(2,2))
-hnp(modc7)
+(modc7)
 hnp(modc5)
 hnp(modc3)
 ```

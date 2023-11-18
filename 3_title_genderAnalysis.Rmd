@@ -35,24 +35,11 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 # Title analysis
 
 ```{r}
-data.tit <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
-                   header=T, as.is=T)
-data.tit$date <- dmy(data.tit$date)
-data.tit$year <- year(data.tit$date) 
-#skimr::skim(data.tit)
+load("data_clean/data_title.Rdata")
+data.tit <- data_t
 ```
 
-Excluding special events as round tables and discussions not related to a project or study presented by someone.
 
-```{r}
-IDs <- c(154, 211, 212, 230, 244, 250, 289, 319)
-data.tit <- data.tit %>% filter(!id %in% IDs) %>% filter(!is.na(title_english))
-```
-
-```{r}
-table(data.tit$gender)
-table(data.tit$position_cat, data.tit$gender)
-```
 
 Formating tidytext 
 ```{r}
@@ -615,6 +602,11 @@ classifi %>%
 
 
 # ABSTRAC - semitniment analysis
+
+```{r}
+library(tidytext)
+```
+
 
 Chapter 2, Silge & RObinson. 2018
 

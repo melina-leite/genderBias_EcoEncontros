@@ -74,6 +74,37 @@ pop2 <- pop %>%
                 ratioFtotal,F,M, propFcat, ratioFcat)
 ```
 
+PPGE-USP population size by gender in time
+
+```{r, echo=F}
+pop %>% dplyr::select(year,total_F,total_M) %>% pivot_longer(2:3, names_to = "gender", values_to = "N") %>%
+ggplot(aes(x=as.factor(year), y=N, fill=gender)) + geom_col() +
+   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863"),
+                     label=c("F", "M")) +
+  xlab("")+ ylab("Population size")+
+  theme(text=element_text(size=18),
+    axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
+  ggplot2::annotate("text", x=1:12, y= pop$total_M + pop$total_F/2, size=5,
+           label = paste0(round(pop$total_F*100/(pop$total_M+pop$total_F),0),"%"))
+ggsave("figures/popSize_year.jpeg", units="in", width=11, height=7, dpi=300)
+```
+
+PPGE-USP population size by gender and position and year
+
+```{r, fig.height=10}
+pop2 %>% mutate(ytext = M + F/2) %>%
+  pivot_longer(7:8, names_to = "gender", values_to = "N") %>%
+  ggplot(aes(x=as.factor(year),y=N, fill=gender)) + geom_col() + 
+  facet_wrap(~category, scales="free",ncol=1)+
+  ylab("N") + xlab("") +
+   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
+  theme(text = element_text(size=18),
+    axis.text.x = element_text(size=16, angle=45, hjust=1)) +
+  geom_text(aes(x=as.factor(year), y=ytext,
+                label=paste0(round(propFcat*100), "%") ))
+
+ggsave("figures/popSize_positionYear.jpeg", units="in", width=7, height=14, dpi=300)
+```
 
 
 # Data description
@@ -121,21 +152,6 @@ ggplot(data_p, aes(x=position_cat, fill=gender)) + geom_bar() +
 ggsave("figures/numberSpeakers_position.jpeg", units="in", width=7, height=4.5, dpi=300)
 ```
 
-```{r num speak port}
-n.y <- data_p %>% tabyl(position_cat, gender)
-ggplot(data_p, aes(x=position_cat, fill=gender)) + geom_bar() + 
-  ylab("Número de palestrantes") + xlab("") +
-   scale_fill_manual("gênero", values = c("#b2abd2", "#fdb863")) +
-  scale_x_discrete(labels = c("Pós-graduande", "Pós-doc", "Docente")) +
-  scale_color_discrete(name="Gênero") +
-  theme(text = element_text(size=18),
-    axis.text.x = element_text(size=16)) +
-  ggplot2::annotate("text", x=1:3, y=n.y$M+n.y$F/2, size=5,
-           label = c("52%", "43%","24%"))
-
-ggsave("figures/numberSpeakers_position_port.jpeg", units="in", width=7, height=4.5, dpi=300)
-```
-
 Variation in time.
 
 ```{r, echo=F}
@@ -158,8 +174,6 @@ ggsave("figures/numberSpeakers_year.jpeg", units="in", width=11, height=7, dpi=3
 
 ### Origin of the speakers
 
-
-
 ```{r, echo=F}
 origin <- paste(data_p$department, data_p$institute,data_p$university)
 eco.ib <- sort(table(origin), decreasing = T)[1]
@@ -170,41 +184,9 @@ There were `r sort(table(origin), decreasing = T)[1]` (`r round(eco.ib*100/dim(d
 
 Including talks from the Institute of Biosciences, USP, there were `r todo.ib` (`r round(todo.ib*100/dim(data_p)[1])`%).
 
-## PPGE-USP population data 
-
-PPGE-USP population size by gender in time
-
-```{r, echo=F}
-pop %>% dplyr::select(year,total_F,total_M) %>% pivot_longer(2:3, names_to = "gender", values_to = "N") %>%
-ggplot(aes(x=as.factor(year), y=N, fill=gender)) + geom_col() +
-   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863"),
-                     label=c("F", "M")) +
-  xlab("")+ ylab("Population size")+
-  theme(text=element_text(size=18),
-    axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
-  ggplot2::annotate("text", x=1:12, y= pop$total_M + pop$total_F/2, size=5,
-           label = paste0(round(pop$total_F*100/(pop$total_M+pop$total_F),0),"%"))
-ggsave("figures/popSize_year.jpeg", units="in", width=11, height=7, dpi=300)
-```
-
-PPGE-USP population size by gender and position and year
-```{r, fig.height=10}
-pop2 %>% mutate(ytext = M + F/2) %>%
-  pivot_longer(7:8, names_to = "gender", values_to = "N") %>%
-  ggplot(aes(x=as.factor(year),y=N, fill=gender)) + geom_col() + 
-  facet_wrap(~category, scales="free",ncol=1)+
-  ylab("N") + xlab("") +
-   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
-  theme(text = element_text(size=18),
-    axis.text.x = element_text(size=16, angle=45, hjust=1)) +
-  geom_text(aes(x=as.factor(year), y=ytext,
-                label=paste0(round(propFcat*100), "%") ))
-
-ggsave("figures/popSize_positionYear.jpeg", units="in", width=7, height=14, dpi=300)
-```
 
 
-## Comparing proportions of female speakers in the seminar and in the population by position.
+### Comparing proportions of female speakers in the seminar and in the population by position.
 
 ```{r, fig.cap="Relationship between the proportion of females in the PPGE population in each category of academic position in each year (x axis) and the proportion of female speakers in the same category and year. Horizontal and vertical gray dashed lines are the 50% of each proportion and diagonal black dashed line indicates where the propotions are similar."}
 propS <- data_p %>% group_by(year,position_cat,gender) %>% 
@@ -227,22 +209,6 @@ ggplot(proportions,aes(x=propFcat, y=propFspeaker, col=year)) +
   geom_vline(xintercept = 0.5, linetype="dashed", col="lightgray")
 ggsave("figures/propFemale_popXspeaker.jpeg", units="in", width=14, height=5, dpi=300)
 ```
-
-
-By year
-```{r, fig.height=8}
-proportions %>% pivot_longer(c(3,8), names_to = "data",values_to = "proportion") %>%
-ggplot(aes(x=year, y=proportion, col=data)) +
-  geom_point() +
-  scale_color_manual(name="Dataset",values = 1:2,
-                     labels=c("PPGE population", "Speakers pop"))+
-  geom_smooth(method="lm") +
-  facet_wrap(~position_cat, ncol=1)+
-  ylab("Proportion of females")+
-  geom_hline(yintercept = 0.5, linetype="dashed", col="lightgray")
-ggsave("figures/propFemale_popXspeaker_byYear.jpeg", units="in", width=7, height=10, dpi=300)
-```
-
 
 # Audience data
 
@@ -277,17 +243,6 @@ ggplot(data_a, aes(x=position_cat, y=audience_n, fill=gender)) +
   geom_quasirandom(dodge.width = 0.9, shape=21)+
   stat_summary(fun.y=median, aes(ymin=..y.., ymax=..y..),geom='errorbar', 
                width=0.8, size=0.8, position = position_dodge(width = 0.9))+
-  xlab("") + ylab("Audience (N)")
-```
-
-Variation in time
-```{r, fig.height=10}
-ggplot(data_a, aes(x=date, y=audience_n, fill=gender)) +
-  facet_wrap(~position_cat, ncol=1)+
-  scale_fill_manual(values = c("#b2abd2", "#fdb863"))+
-  scale_color_manual(values = c("#b2abd2", "#fdb863"))+
-  geom_quasirandom(dodge.width = 0.9, shape=21)+
-  geom_smooth()+
   xlab("") + ylab("Audience (N)")
 ```
 

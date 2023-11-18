@@ -21,7 +21,7 @@ library(janitor); library(lubridate)
 library(DHARMa); library(ggeffects)
 library(bbmle); library(MASS)
 library(hnp); library(performance)
-
+library(lme4)
 
 opts_chunk$set(fig.align = 'center', warning = FALSE, message = FALSE, error = FALSE, echo=T, cache=F)
 options(formatR.arrow = TRUE, width = 90, help_type = "html")
@@ -47,207 +47,50 @@ data$fem[data$gender == "M"] <- 0
 
 # Modeling
 
-## Proportions of female speakers by academic position and time.
+Proportions of female speakers by academic position, before and after affirmative actions. Controling for population proportions: the ratio of females at the graduate program by academic position and year.
 
-Binomial models with the response variable as 0 if the speaker is male or 1 if female. Response varibles as year, and academic position and affirmative actions.
-
-
-```{r, echo=T}
-mod0 <- glm(fem ~ 1, family=binomial, data= data)
-mod1 <- glm(fem ~ year, family=binomial, data= data)
-mod2 <- glm(fem ~ affirm_action, family=binomial, data= data)
-mod3 <- glm(fem ~ position_cat, family=binomial, data= data)
-
-mod4 <- glm(fem ~ position_cat + year, family=binomial, data= data)
-mod5 <- glm(fem ~ position_cat*year, family=binomial, data= data)
-mod6 <- glm(fem ~ position_cat + affirm_action, family=binomial, data= data)
-mod7 <- glm(fem ~ position_cat*affirm_action, family=binomial, data= data)
-
-kable(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T), digits=2)
-
-#as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
-#  mutate_at(c(1,2,4), round, digits=2) %>% kable()
+```{r}
+data <- data %>% left_join(pop2[,c(1:2,10)], by=c("year", "position_cat"="category")) %>%
+  mutate(position_cat = fct_relevel(position_cat, "student","postdoc",
+                                    "professor"))
 ```
 
+Mixed effects model, including year as random intercept.
 
-Best model is the one with interaction between academic position and affirmative actions (as time event), but it is equaly plausible with the model with year as time event and only academic position.
+Binomial distribution
+
+```{r, echo=T}
+mod0 <- glmer(fem ~ 1 + ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod1 <- glmer(fem ~ affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod2 <- glmer(fem ~ position_cat + ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod3 <- glmer(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod4 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+
+kable(AICtab(mod0,mod1,mod2,mod3,mod4, base=T, weights=T), digits=2)
+```
+
 
 ## Residual diagnostic of the selected models
 
-All equaly plausible models presented satisfactory residual diagnostic.
 ```{r}
-hnp(mod7)
-hnp(mod5)
-hnp(mod3)
-```
-
-```{r}
-plot(simulateResiduals(mod7))
-plot(simulateResiduals(mod5))
-plot(simulateResiduals(mod3))
-```
-
-
-## Models results
-
-```{r}
-summary(mod7)
-performance::r2_nagelkerke(mod7)
-my7 <- ggpredict(mod7, terms=c("position_cat","affirm_action"))
-plot(my7) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
-```
-The best fitted model includes only academic position and affirmative actions and the interaction between them (R2 = `r round(performance::r2_nagelkerke(mod7),2)`, Figure 1).
-
-Figure proportion of female speakers by position_cat e affirm_action
-
-
-```{r fig prop}
-suma <- data %>% count(position_cat, affirm_action,fem)
-prs <- as.data.frame(my7)
-
-ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
-  geom_point(aes(, size=n),position=position_dodge(0.6), alpha=0.2, show_guides=F) +
-  scale_size(range=c(1,10), breaks = c(3,10,20,60))+
-  geom_pointrange(data=prs, aes(x=x, y=predicted, col=group,
-                                ymax=conf.high, ymin=conf.low), 
-             position=position_dodge(0.6)) +
-  geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
-  scale_color_manual(name="Affirmative \n actions", 
-                     values = c("goldenrod", "green4")) +
-  ylab("Proportion of female speakers")+
-  xlab("Academic position")+
-  theme(text = element_text(size=20),
-        axis.text = element_text(size=18))
-ggsave("figures/prop_female_speakers.jpeg", width=9, height = 6)  
-```
-
-
-```{r fig prop port}
-suma <- data %>% count(position_cat, affirm_action,fem)
-prs <- as.data.frame(my7)
-
-ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
-  geom_point(aes(, size=n),position=position_dodge(0.6), alpha=0.2, show_guides=F) +
-  scale_size(range=c(1,10), breaks = c(3,10,20,60))+
-  geom_pointrange(data=prs, aes(x=x, y=predicted, col=group,
-                                ymax=conf.high, ymin=conf.low), 
-             position=position_dodge(0.6)) +
-  geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
-  scale_color_manual(name="Ações \n afirmativas", 
-                     label = c("antes", "depois"),
-                     values = c("goldenrod", "green4")) +
-  scale_x_discrete(labels=c("Pós-graduande", "Pós-doc", "Docente"))+
-  ylab("Proporção de mulheres palestrantes")+
-  xlab("")+
-  theme(text = element_text(size=20),
-        axis.text = element_text(size=18))
-ggsave("figures/prop_female_speakers_port.jpeg", width=9, height = 6)  
-```
-
-
-```{r}
-summary(mod5)
-performance::r2(mod5)
-my5 <- ggpredict(mod5, terms=c("year", "position_cat"))
-plot(my5) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
-```
-
-```{r}
-summary(mod3)
-performance::r2(mod3)
-my3 <- ggpredict(mod3, terms=c("position_cat"))
-plot(my3) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
-```
-
-
-## Proportions of female speakers by academic position and time - controling by population proportions
-
-The models below controls by differences in gender ratios in PPGE population by academic position. For that, we included a control variable in every model in the model set with the ratio of females in the year and by position.
-```{r}
-data <- data %>% left_join(pop2[,c(1:2,10)], by=c("year", "position_cat"="category"))
-```
-
-
-```{r, echo=T}
-modc0 <- glm(fem ~ 1 + ratioFcat, family=binomial, data= data)
-modc1 <- glm(fem ~ year + ratioFcat, family=binomial, data= data)
-modc2 <- glm(fem ~ affirm_action + ratioFcat, family=binomial, data= data)
-modc3 <- glm(fem ~ position_cat+ ratioFcat, family=binomial, data= data)
-
-modc4 <- glm(fem ~ position_cat + year + ratioFcat, family=binomial, 
-             data= data)
-modc5 <- glm(fem ~ position_cat*year + ratioFcat, family=binomial, data= data)
-modc6 <- glm(fem ~ position_cat +affirm_action + ratioFcat, family=binomial,
-             data= data)
-modc7 <- glm(fem ~ position_cat*affirm_action + ratioFcat, family=binomial,
-             data= data)
-
-AICtab(modc0,modc1,modc2,modc3,modc4,modc5,modc6,modc7, base=T, weights=T)
-```
-
-
-```{r, echo=T}
-library(lme4)
-mod0 <- glmer(fem ~ 1 + ratioFcat + (1|year), family=binomial, data= data)
-mod2 <- glmer(fem ~ affirm_action + ratioFcat+ (1|year), family=binomial, data= data)
-mod3 <- glmer(fem ~ position_cat + ratioFcat + (1|year), family=binomial, data= data)
-mod6 <- glmer(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
-              family=binomial, data= data)
-mod7 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
-              family=binomial, data= data)
-
-mod8 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (position_cat|year), 
-              family=binomial, data= data)
-
-
-kable(AICtab(mod0,mod2,mod3,mod6,mod7,mod8, base=T, weights=T), digits=2)
-
-#as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
-#  mutate_at(c(1,2,4), round, digits=2) %>% kable()
-summary(mod7)
-```
-
-
-```{r}
-plot(simulateResiduals(mod7))
-summary(mod7)
-performance::r2(mod7)
-myc7 <- ggpredict(mod7, terms=c("position_cat","affirm_action",
-                                 "ratioFcat[1]"))
-plot(myc7) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
-```
-
-Similar results as without the ratio of females in the PPGE population
-
-## Residual diagnostic of the selected models
-
-All equaly plausible models presented satisfactory residual diagnostic.
-```{r}
-par(mfrow=c(2,2))
-(modc7)
-hnp(modc5)
-hnp(modc3)
-```
-
-```{r}
-plot(simulateResiduals(modc7))
-plot(simulateResiduals(modc5))
-plot(simulateResiduals(modc3))   
+plot(simulateResiduals(mod4))
+plot(simulateResiduals(mod2))
 ```
 
 ## Models results
 
 Using 1:1 population gender ratio
 ```{r}
-summary(modc7)
-performance::r2(modc7)
-myc7 <- ggpredict(modc7, terms=c("position_cat","affirm_action",
+summary(mod4)
+performance::r2(mod4)
+my4 <- ggpredict(mod4, terms=c("position_cat","affirm_action",
                                  "ratioFcat[1]"))
-plot(myc7) +
+plot(my4) +
   geom_hline(yintercept = 0.5, linetype="dashed")
 ```
 
@@ -255,7 +98,7 @@ plot(myc7) +
 ```{r fig prop}
 suma <- data %>% count(position_cat, affirm_action,fem) %>%
   mutate(position_cat = fct_relevel(position_cat, "student", "postdoc", "professor"))
-prs <- as.data.frame(myc7)
+prs <- as.data.frame(my4)
 
 ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
   geom_point(aes(, size=n),position=position_dodge(0.6), alpha=0.2, show_guides=F) +
@@ -274,74 +117,11 @@ ggsave("figures/prop_female_speakers_model.jpeg", width=9, height = 6)
 ```
 
 ```{r}
-summary(modc5)
-performance::r2(modc5)
-myc5 <- ggpredict(modc5, terms=c("year", "position_cat",
+summary(mod2)
+performance::r2(mod2)
+my2 <- ggpredict(mod2, terms=c( "position_cat",
                                  "ratioFcat[1]"))
-plot(myc5) +
+plot(my2) +
   geom_hline(yintercept = 0.5, linetype="dashed")
 ```
-
-```{r}
-summary(modc3)
-performance::r2(modc3)
-myc3 <- ggpredict(modc3, terms=c("position_cat", "ratioFcat[1]"))
-plot(myc3) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
-```
-
-<!-- # Efficiency of affirmataive actions for professors -->
-
-<!-- ```{r} -->
-<!-- data.prof <- data %>% filter(position_cat == "professor") -->
-<!-- ``` -->
-
-<!-- Model before affirmative action (2018) -->
-<!-- ```{r} -->
-<!-- data.prof.before <- data.prof %>% filter(affirm_action =="before") -->
-<!-- data.prof.after <- data.prof %>% filter(affirm_action =="after") -->
-
-<!-- mbefore <- glm(fem ~ year, family=binomial, data= data.prof.before) -->
-<!-- mbefore.null <- glm(fem ~ 1, family=binomial, data= data.prof.before) -->
-<!-- AICctab(mbefore,mbefore.null) -->
-
-<!-- mafter <- glm(fem ~ year, family=binomial, data= data.prof.after) -->
-<!-- mafter.null <- glm(fem ~ 1, family=binomial, data= data.prof.after) -->
-<!-- AICctab(mafter,mafter.null) -->
-
-<!-- summary(mbefore) -->
-<!-- summary(mafter) -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- nulo <- data.frame(intercept = rep(c(arm::invlogit(coef(mbefore.null)), -->
-<!--               arm::invlogit(coef(mafter.null))), c(10,2)), -->
-<!--             year=rep(2008:2019), -->
-<!--             affirm_action=rep(c("before", "after"), c(10,2))) -->
-
-<!-- ggplot(nulo, aes(y=intercept,x=year,col=affirm_action))+ geom_line() + -->
-<!--     ylim(0,0.8) + -->
-<!--       geom_hline(yintercept = 0.5, linetype="dashed", col="gray")+ -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- mbef <- ggpredict(mbefore, terms=c("year")) -->
-<!-- plot(mbef) + -->
-<!--   geom_hline(yintercept = 0.5, linetype="dashed") -->
-
-<!-- maft <- ggpredict(mafter, terms=c("year")) -->
-<!-- plot(maft) + -->
-<!--   geom_hline(yintercept = 0.5, linetype="dashed") -->
-
-
-<!-- bind_rows(list(before = as.data.frame(mbef), after=as.data.frame(maft)),  -->
-<!--           .id="time") %>% -->
-<!--   ggplot(aes(x=x, y=predicted, col=time))+ geom_line() + -->
-<!--   geom_hline(yintercept = 0.5, linetype="dashed", col="gray")+ -->
-<!--   geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=0.3, col="white")+ -->
-<!--   ylim(0,0.8) -->
-
-<!-- ``` -->
 

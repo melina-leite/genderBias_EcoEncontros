@@ -30,30 +30,23 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 
 # Data
 
-## EcoEncontros Seminar talks
+Data description and summary in script `0_data_summary`.
 
-
-Talks from EcoEncontros Seminar series at the Graduate Program of Ecology in the University of São Paulo (PPGE-USP), Brazil
-
-See file `metadata.txt`, in folder `data` for more description and detail of the dataset.
 ```{r}
 data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
                    header=T, as.is=T)
 data$date <- dmy(data$date)
 data$year <- year(data$date) 
-#skimr::skim(data)
 ```
 
 Excluding special events as round tables and discussions not related to a project or study presented by someone.
 
 ```{r}
-IDs <- c(154, 250, 211, 289)
-data <- data %>% filter(!id %in% IDs)
+IDs <- c(154, 211, 212, 230, 244, 250, 289, 319)
+data <- data1 %>% filter(!id %in% IDs)
 ```
 
-For this specific analysis, excluding speakers that are not in academia ("others"), and keeping undergraduate students, MD and PhD in the group student. postdoc, professor or researcher*.
-
-*Researchers are included in the professor categorical position (column `position_cat`) because all of them come from research institutions.
+Excluding talks from non-academic professionals.
 
 ```{r}
 data <- data %>% filter(position_cat != "others")
@@ -61,7 +54,7 @@ data$position_cat <- fct_relevel(data$position_cat, "student",
                                  "postdoc","professor")
 ```
 
-Excluding seminars with more than one speaker
+Excluding seminars with more than one speaker:
 
 ```{r}
 events <- data %>% count(id) %>% filter(n>1)
@@ -76,8 +69,7 @@ dim(data)
 
 # Data description
 
-Regarding the differences in the audience, there were `r length(data$audience_female!=NA)` talks with the number of attendees, allowing us to conduct the analysis, as we excluded seminars with more than one presenter (round tables, and special seminars).
-
+Regarding the differences in the audience, there were `r length(data$audience_female!=NA)` talks with the number of attendees.
 Audience by gender and academic position
 
 ```{r}

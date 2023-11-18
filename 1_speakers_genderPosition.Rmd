@@ -29,29 +29,23 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 
 # Data
 
-## EcoEncontros Seminar talks
+Data description and summary in script `0_data_summary`.
 
-Talks from EcoEncontros Seminar series at the Graduate Program of Ecology in the University of São Paulo (PPGE-USP), Brazil
-
-See file `metadata.txt`, in folder `data` for more description and detail of the dataset.
 ```{r}
 data1 <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
                    header=T, as.is=T)
 data1$date <- dmy(data1$date)
 data1$year <- year(data1$date) 
-#skimr::skim(data)
 ```
 
 Excluding special events as round tables and discussions not related to a project or study presented by someone.
 
 ```{r}
-IDs <- c(154, 250, 211, 289)
+IDs <- c(154, 211, 212, 230, 244, 250, 289, 319)
 data <- data1 %>% filter(!id %in% IDs)
 ```
 
-For this specific analysis, excluding speakers that are not in academia ("others"), and keeping undergraduate students, MD and PhD in the group student. postdoc, professor or researcher*.
-
-*Researchers are included in the professor categorical position (column `position_cat`) because all of them come from research institutions.
+Excluding talks from non-academic professionals.
 
 ```{r}
 data <- data %>% filter(position_cat != "others")
@@ -65,200 +59,29 @@ data$fem <- 1
 data$fem[data$gender == "M"] <- 0 
 ```
 
+Including varible to indicated the affirmative actions period
+```{r}
+data$affirm_action <- ifelse(data$year<2018,"before", "after")
+data$affirm_action <- fct_relevel(data$affirm_action,"before", "after")
+```
 
-## Population data from PPGE-USP from 2008-2019
+There were `r table(data$affirm_action)[1]` seminars before and  `r table(data$affirm_action)[2]` after the affirmative actions.
 
-Number of students, postdocs and professors in the PPGE-USP per gender and year.
 
+
+Population data from PPGE-USP from 2008-2019, to create sex ratio per year and academic position.
 ```{r}
 pop <- read.table("data/pop_PPGE_2008-2019.csv", sep=",",
                    header=T, as.is=T)
-kable(pop)
 ```
 
-
-
-# Data description
-
-Descriptive totals, regardless of position: From `r length(unique(data1$id))` talks in 12 years,  there were `r length(unique(data$id))` talks with all the information we needed to conduct the analysis, as we excluded seminars with more than one presenter (round tables, and special seminars). In total, `r paste0(round(((data %>% tabyl(gender))[2,3]*100)), "%")` of the talks were given by men (n=`r (data %>% tabyl(gender))[2,2]`) and `r paste0(round(((data %>% tabyl(gender))[1,3]*100)), "%")` by women (n=`r (data %>% tabyl(gender))[1,2]`).
-
-```{r}
-dim(data)
-```
-
-## Speakers data
-Proportion and number of male and female speakers per academic position
-
-```{r}
-data %>% tabyl(position_cat, gender) %>% adorn_percentages("row") %>%
-  adorn_pct_formatting(digits = 0) %>%
-  adorn_ns() %>%
-  kable(caption="Proportion and number (in parenthesis) of females (F) and males (M) per academic position category.")
-```
-
-```{r num speak}
-n.y <- data %>% tabyl(position_cat, gender)
-ggplot(data, aes(x=position_cat, fill=gender)) + geom_bar() + 
-  ylab("Number of speakers") + xlab("") +
-   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
-  scale_color_discrete(name="Gênero") +
-  theme(text = element_text(size=18),
-    axis.text.x = element_text(size=16)) +
-  annotate("text", x=1:3, y=n.y$M+n.y$F/2, size=5,
-           label = c("52%", "43%","24%"))
-
-ggsave("figures/numberSpeakers_position.jpeg", units="in", width=7, height=4.5, dpi=300)
-```
-
-```{r num speak port}
-n.y <- data %>% tabyl(position_cat, gender)
-ggplot(data, aes(x=position_cat, fill=gender)) + geom_bar() + 
-  ylab("Número de palestrantes") + xlab("") +
-   scale_fill_manual("gênero", values = c("#b2abd2", "#fdb863")) +
-  scale_x_discrete(labels = c("Pós-graduande", "Pós-doc", "Docente")) +
-  scale_color_discrete(name="Gênero") +
-  theme(text = element_text(size=18),
-    axis.text.x = element_text(size=16)) +
-  annotate("text", x=1:3, y=n.y$M+n.y$F/2, size=5,
-           label = c("52%", "43%","24%"))
-
-ggsave("figures/numberSpeakers_position_port.jpeg", units="in", width=7, height=4.5, dpi=300)
-```
-
-Variation in time.
-
-```{r, echo=F}
-prop.y <- data %>% tabyl(year,gender) %>%
-  adorn_percentages("row") %>%
-  adorn_pct_formatting(digits = 0) 
-n.y <- data %>% tabyl(year,gender)
-
-ggplot(data, aes(x=as.factor(year), fill=gender)) + geom_bar()  +
-  ylab("Number of speakers") + xlab("") +
-   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
-  theme(text=element_text(size=18),
-    axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
-  annotate("text", x=1:12, y=n.y$M+n.y$F/2,size=5,
-           label = prop.y$F)
-
-ggsave("figures/numberSpeakers_year.jpeg", units="in", width=11, height=7, dpi=300)
-```
-
-
-### Origin of the speakers
-
-
-
-```{r, echo=F}
-origin <- paste(data$department, data$institute,data$university)
-eco.ib <- sort(table(origin), decreasing = T)[1]
-todo.ib <- length(grep("IB USP", origin, value=T))
-```
-
-There were `r sort(table(origin), decreasing = T)[1]` (`r round(eco.ib*100/dim(data)[1])`%) talks given by people from the PPGE population.
-
-Including talks from the Institute of Biosciences, USP, there were `r todo.ib` (`r round(todo.ib*100/dim(data)[1])`%).
-
-## PPGE-USP population data 
-
-```{r echo=FALSE}
-pop2 <- pop %>%  
-  pivot_longer(2:7, names_to=c("category","gender"), values_to="N",
-               names_sep = "_") %>%
-  pivot_wider(names_from = "gender", values_from="N") %>%
-  mutate(propFtotal = total_F/(total_F+total_M),
-         ratioFtotal = total_F/total_M,
-         propFcat = F/(F+M),
-         ratioFcat = F/M) %>%
-  dplyr::select(year, category, total_F, total_M, propFtotal,
-                ratioFtotal,F,M, propFcat, ratioFcat)
-```
-
-PPGE-USP population size by gender in time
-
-```{r, echo=F}
-pop %>% dplyr::select(year,total_F,total_M) %>% pivot_longer(2:3, names_to = "gender", values_to = "N") %>%
-ggplot(aes(x=as.factor(year), y=N, fill=gender)) + geom_col() +
-   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863"),
-                     label=c("F", "M")) +
-  xlab("")+ ylab("Population size")+
-  theme(text=element_text(size=18),
-    axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
-  annotate("text", x=1:12, y= pop$total_M + pop$total_F/2, size=5,
-           label = paste0(round(pop$total_F*100/(pop$total_M+pop$total_F),0),"%"))
-ggsave("figures/popSize_year.jpeg", units="in", width=11, height=7, dpi=300)
-```
-
-PPGE-USP population size by gender and position and year
-```{r, fig.height=8}
-pop2 %>% mutate(ytext = M + F/2) %>%
-  pivot_longer(7:8, names_to = "gender", values_to = "N") %>%
-  ggplot(aes(x=as.factor(year),y=N, fill=gender)) + geom_col() + 
-  facet_wrap(~category, scales="free",ncol=1)+
-  ylab("N") + xlab("") +
-   scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
-  theme(text = element_text(size=18),
-    axis.text.x = element_text(size=16, angle=45, hjust=1)) +
-  geom_text(aes(x=as.factor(year), y=ytext,
-                label=paste0(round(propFcat*100), "%") ))
-
-ggsave("figures/popSize_positionYear.jpeg", units="in", width=7, height=14, dpi=300)
-```
-
-
-## Comparing proportions of female speakers in the seminar and in the population by position.
-
-```{r, fig.cap="Relationship between the proportion of females in the PPGE population in each category of academic position in each year (x axis) and the proportion of female speakers in the same category and year. Horizontal and vertical gray dashed lines are the 50% of each proportion and diagonal black dashed line indicates where the propotions are similar."}
-propS <- data %>% group_by(year,position_cat,gender) %>% 
-  count() %>% 
-  pivot_wider(names_from = gender, values_from = n, values_fill = 0) %>%
-  mutate(propFspeaker = F/(M+F)) 
-proportions <- pop2 %>% dplyr::select(year, category, propFcat, F,M) %>% 
-  rename("position_cat"="category") %>%
-  left_join(propS, by=c("year", "position_cat")) %>%
-  mutate(position_cat = fct_relevel(position_cat, "student", "postdoc", "professor"))
-ggplot(proportions,aes(x=propFcat, y=propFspeaker, col=year)) +
-  scale_color_gradient()+
-  geom_point() +
-  facet_wrap(~position_cat)+
-  xlim(0,1) +
-  xlab("Proportion of females in the population") +
-  ylab("Proportion of females as speakers")+
-  geom_abline(slope=1,intercept=0, linetype="dashed") +
-  geom_hline(yintercept = 0.5, linetype="dashed", col="lightgray")+
-  geom_vline(xintercept = 0.5, linetype="dashed", col="lightgray")
-ggsave("figures/propFemale_popXspeaker.jpeg", units="in", width=14, height=5, dpi=300)
-```
-
-
-By year
-```{r, fig.height=8}
-proportions %>% pivot_longer(c(3,8), names_to = "data",values_to = "proportion") %>%
-ggplot(aes(x=year, y=proportion, col=data)) +
-  geom_point() +
-  scale_color_manual(name="Dataset",values = 1:2,
-                     labels=c("PPGE population", "Speakers pop"))+
-  geom_smooth(method="lm") +
-  facet_wrap(~position_cat, ncol=1)+
-  ylab("Proportion of females")+
-  geom_hline(yintercept = 0.5, linetype="dashed", col="lightgray")
-ggsave("figures/propFemale_popXspeaker_byYear.jpeg", units="in", width=7, height=10, dpi=300)
-```
 
 
 # Modeling
 
 ## Proportions of female speakers by academic position and time.
 
-Binomial models with the response variable as 0 if the speaker is male or 1 if female. Response varibles as year and academic position.
-
-**OBS**: Starting in 2018, the Ecoencontros students committee tried actively to balance gender in presentations as an affirmative policy in the group. Becase of that we also analyzed if the proportions varied between before and after the policy.
-
-```{r}
-data$affirm_action <- ifelse(data$year<2018,"before", "after")
-data$affirm_action <- fct_relevel(data$affirm_action,"before", "after")
-```
-There were `r table(data$affirm_action)[1]` seminars before and  `r table(data$affirm_action)[2]` after the affirmative actions.
+Binomial models with the response variable as 0 if the speaker is male or 1 if female. Response varibles as year, and academic position and affirmative actions.
 
 
 ```{r, echo=T}
@@ -276,8 +99,31 @@ kable(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T), digits
 
 #as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
 #  mutate_at(c(1,2,4), round, digits=2) %>% kable()
-
 ```
+
+```{r, echo=T}
+library(lme4)
+mod0 <- glmer(fem ~ 1 + ratioFcat + (1|year), family=binomial, data= data)
+mod1 <- glmer(fem ~ scale(year) + ratioFcat+ (1|year), family=binomial, data= data)
+mod2 <- glmer(fem ~ affirm_action + ratioFcat+ (1|year), family=binomial, data= data)
+mod3 <- glmer(fem ~ position_cat + ratioFcat+ (1|year), family=binomial, data= data)
+
+mod4 <- glmer(fem ~ position_cat + ratioFcat+ scale(year) + (1|year), 
+              family=binomial, data= data)
+mod5 <- glmer(fem ~ position_cat*scale(year)+ ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod6 <- glmer(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+mod7 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
+              family=binomial, data= data)
+
+kable(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T), digits=2)
+
+#as.data.frame(AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7, base=T, weights=T)) %>%
+#  mutate_at(c(1,2,4), round, digits=2) %>% kable()
+```
+
+
 
 Best model is the one with interaction between academic position and affirmative actions (as time event), but it is equaly plausible with the model with year as time event and only academic position.
 
@@ -415,15 +261,6 @@ plot(simulateResiduals(modc5))
 plot(simulateResiduals(modc3))   
 ```
 
-## Comparing both models - controling and not controling
-
-```{r}
-AICtab(mod0,mod1,mod2,mod3,mod4,mod5,mod6,mod7,
-       modc0,modc1,modc2,modc3,modc4,modc5,modc6,modc7, base=T, weights=T)
-```
-
-
-
 ## Models results
 
 Using 1:1 population gender ratio
@@ -434,6 +271,28 @@ myc7 <- ggpredict(modc7, terms=c("position_cat","affirm_action",
                                  "ratioFcat[1]"))
 plot(myc7) +
   geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+
+```{r fig prop}
+suma <- data %>% count(position_cat, affirm_action,fem) %>%
+  mutate(position_cat = fct_relevel(position_cat, "student", "postdoc", "professor"))
+prs <- as.data.frame(myc7)
+
+ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
+  geom_point(aes(, size=n),position=position_dodge(0.6), alpha=0.2, show_guides=F) +
+  scale_size(range=c(1,10), breaks = c(3,10,20,60))+
+  geom_pointrange(data=prs, aes(x=x, y=predicted, col=group,
+                                ymax=conf.high, ymin=conf.low), 
+             position=position_dodge(0.6)) +
+  geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
+  scale_color_manual(name="Affirmative \n actions", 
+                     values = c("goldenrod", "green4")) +
+  ylab("Proportion of female speakers")+
+  xlab("Academic position")+
+  theme(text = element_text(size=20),
+        axis.text = element_text(size=18))
+ggsave("figures/prop_female_speakers_model.jpeg", width=9, height = 6)  
 ```
 
 ```{r}

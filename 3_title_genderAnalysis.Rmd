@@ -45,7 +45,7 @@ data.tit$year <- year(data.tit$date)
 Excluding special events as round tables and discussions not related to a project or study presented by someone.
 
 ```{r}
-IDs <- c(154, 250, 211, 289)
+IDs <- c(154, 211, 212, 230, 244, 250, 289, 319)
 data.tit <- data.tit %>% filter(!id %in% IDs) %>% filter(!is.na(title_english))
 ```
 

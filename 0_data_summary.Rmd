@@ -140,7 +140,7 @@ data_p %>% tabyl(position_cat, gender) %>% adorn_percentages("row") %>%
 
 ```{r num speak}
 n.y <- data_p %>% tabyl(position_cat, gender) %>% as.data.frame()
-ggplot(data_p, aes(x=position_cat, fill=gender)) + geom_bar() + 
+fig1<- ggplot(data_p, aes(x=position_cat, fill=gender)) + geom_bar() + 
   ylab("Number of speakers") + xlab("") +
    scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
   scale_color_discrete(name="Gênero") +
@@ -148,8 +148,8 @@ ggplot(data_p, aes(x=position_cat, fill=gender)) + geom_bar() +
     axis.text.x = element_text(size=16)) +
  ggplot2::annotate("text", x=1:3, y=n.y$M+(n.y$`F`/2), size=5,
            label = c("52%", "43%","24%"))
-
-ggsave("figures/numberSpeakers_position.jpeg", units="in", width=7, height=4.5, dpi=300)
+fig1
+#ggsave("figures/numberSpeakers_position.jpeg", units="in", width=7, height=4.5, dpi=300)
 ```
 
 Variation in time.
@@ -160,15 +160,23 @@ prop.y <- data_p %>% tabyl(year,gender) %>%
   adorn_pct_formatting(digits = 0) 
 n.y <- data_p %>% tabyl(year,gender)
 
-ggplot(data_p, aes(x=as.factor(year), fill=gender)) + geom_bar()  +
+fig2 <- ggplot(data_p, aes(x=as.factor(year), fill=gender)) + geom_bar()  +
   ylab("Number of speakers") + xlab("") +
    scale_fill_manual("gender", values = c("#b2abd2", "#fdb863")) +
   theme(text=element_text(size=18),
     axis.text.x = element_text(size=16,angle = 45, hjust=1)) +
   ggplot2::annotate("text", x=1:12, y=n.y$M+n.y$F/2,size=5,
            label = prop.y$F)
+fig2
+#ggsave("figures/numberSpeakers_year.jpeg", units="in", width=11, height=7, dpi=300)
+```
 
-ggsave("figures/numberSpeakers_year.jpeg", units="in", width=11, height=7, dpi=300)
+
+```{r}
+fig1 + labs(tag = "a)") +
+  fig2 + labs(tag = "b)") +
+  plot_layout(widths = c(0.4,1), guides = "collect")
+ggsave("figures/FIG_numberSpeakers_position_year.jpeg", units="in", width=14, height=6, dpi=300)
 ```
 
 

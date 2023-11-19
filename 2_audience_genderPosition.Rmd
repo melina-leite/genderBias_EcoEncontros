@@ -222,7 +222,7 @@ AICtab(m0,m1,m2,m3,m4,
 
 Best model
 ```{r}
-plot(simulateResiduals(m3t))
+plot(simulateResiduals(m3))
 plot(simulateResiduals(m4))
 ```
 
@@ -257,7 +257,7 @@ plot(my3)
 
 
 ```{r}
-my4 <- ggpredict(m4t, terms=c("pc1","gender")) %>% as.data.frame()
+my4 <- ggpredict(m4, terms=c("pc1","gender")) %>% as.data.frame()
 ggplot(my4, aes(x=x, y=predicted, col=group)) +
   geom_ribbon(aes(ymin=conf.low,ymax=conf.high, fill=group), alpha=0.3,
              colour = NA) +
@@ -287,7 +287,7 @@ f1 <- ggplot(data, aes(x=affirm_action, y=audience_n)) +
              position=position_dodge(0.6), size=1, shape=21, col="black") +
   ylab("Audience (N)")  +
   xlab("Affirmative actions")+
-  labs(tag="A")
+  labs(tag="a)")
   
 my3 <- ggpredict(m3, terms=c("pc1","gender"))
 my3 <- as.data.frame(my3)
@@ -305,7 +305,7 @@ f2 <- ggplot(my3, aes(x=x, y=predicted, col=group)) +
              size=2)+
   theme(legend.position="none",
          plot.title = element_text(size=12, vjust=2, hjust=0.5)) +
-  labs(tag="C", title="Professors' audience")
+  labs(tag="c)", title="Professors' audience")
 
 p1<- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
                       col.ind.sub="none",  geom="point",
@@ -316,7 +316,7 @@ p1<- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
   scale_color_manual(name="gender",values = c("#6D57CF","#FCA532"))+
   scale_shape(name="gender")+
   scale_fill_manual(name="gender",values = c("#6D57CF","#FCA532"))+
-  labs(title="Professors' productivity", tag="B") +
+  labs(title="Professors' productivity", tag="b)") +
   xlab("PC1 (52%)") + ylab("PC2 (21%)") +
   theme_cowplot() +
   theme(legend.position="none",

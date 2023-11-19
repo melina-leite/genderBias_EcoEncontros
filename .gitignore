@@ -2,18 +2,12 @@
 .DS_Store
 Data/Icon
 Icon
-data/Icon
-Icon
+Icon?
 
 data/dados_juntos.gsheet
 .Rproj.user
-Icon
 .Rhistory
-data/Icon
-figures/Icon
-Icon
-data/Icon
-data/Icon
-data/Icon
-figures/Icon
-Icon
+
+
+2_audience_genderPosition_files/*
+2_audience_genderPosition_cache/*

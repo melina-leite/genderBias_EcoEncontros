@@ -287,7 +287,7 @@ ggplot(data_a, aes(x=brazilian, y=audience_n, fill=gender)) +
 
 
 
-# Title analysis data
+# Text analysis data
 
 Excluding talks without title
 

@@ -17,11 +17,10 @@ output:
 library(knitr)
 library(tidyverse); library(cowplot); library(patchwork)
 theme_set(theme_cowplot())
-library(janitor); library(lubridate)
 library(DHARMa); library(ggeffects)
-library(bbmle); library(MASS)
-library(hnp); library(performance)
-library(lme4)
+library(bbmle);
+library(performance)
+library(glmmTMB)
 
 opts_chunk$set(fig.align = 'center', warning = FALSE, message = FALSE, error = FALSE, echo=T, cache=F)
 options(formatR.arrow = TRUE, width = 90, help_type = "html")
@@ -60,15 +59,15 @@ Mixed effects model, including year as random intercept.
 Binomial distribution
 
 ```{r, echo=T}
-mod0 <- glmer(fem ~ 1 + ratioFcat + (1|year), 
+mod0 <- glmmTMB(fem ~ 1 + ratioFcat + (1|year), 
               family=binomial, data= data)
-mod1 <- glmer(fem ~ affirm_action + ratioFcat + (1|year), 
+mod1 <- glmmTMB(fem ~ affirm_action + ratioFcat + (1|year), 
               family=binomial, data= data)
-mod2 <- glmer(fem ~ position_cat + ratioFcat + (1|year), 
+mod2 <- glmmTMB(fem ~ position_cat + ratioFcat + (1|year), 
               family=binomial, data= data)
-mod3 <- glmer(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
+mod3 <- glmmTMB(fem ~ position_cat + affirm_action + ratioFcat + (1|year), 
               family=binomial, data= data)
-mod4 <- glmer(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
+mod4 <- glmmTMB(fem ~ position_cat*affirm_action + ratioFcat + (1|year), 
               family=binomial, data= data)
 
 kable(AICtab(mod0,mod1,mod2,mod3,mod4, base=T, weights=T), digits=2)

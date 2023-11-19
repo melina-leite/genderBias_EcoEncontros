@@ -35,68 +35,80 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 Data description and summary in script `0_data_summary`.
 
 ```{r}
-data <- read.table("data/presentations_PPGE_2008-2019.csv", sep=",",
-                   header=T, as.is=T)
-data$date <- dmy(data$date)
-data$year <- year(data$date)
+load("data_clean/data_title.Rdata")
+data <- data_t
 ```
 
-Excluding special events as round tables and discussions not related to a project or study presented by someone.
+Using data from titles and abstracts.
 
+Formating titles  
 ```{r}
-IDs <- c(154, 211, 212, 230, 244, 250, 289, 319)
-data <- data1 %>% filter(!id %in% IDs)
+tit <- data %>% dplyr::select(id,gender,position_cat, audience_n,
+                              title_english) 
+text_tit <- tit %>% unnest_tokens(output=word,
+                                   input=title_english)
 ```
 
-Using abstracts in English (original or translated)
+Total of `r dim(tit)[1]` titles.
+
+Number of titles per group
 ```{r}
-data <- data  %>% filter(!is.na(abstract_english)) 
+table(tit$gender)
+table(tit$position_cat,tit$gender)
 ```
+
+
+Formating abstracts
+```{r}
+data_abs <- data  %>% filter(!is.na(abstract_english)) 
+text_tok <- data %>% dplyr::select(id,gender,position_cat, audience_n,
+                             abstract_english) %>%
+  unnest_tokens(output=word,input=abstract_english)
+```
+
+Total of `r dim(data_abs)[1]` abstracts.
 
 Number of abstracts per group
 ```{r}
-table(data$gender)
-table(data$position_cat,data$gender)
+table(data_abs$gender)
+table(data_abs$position_cat,data_abs$gender)
 ```
 
 
 Tidytext
 ```{r}
-text_tok <- data %>% dplyr::select(id,gender,position_cat, audience_n,
-                             abstract_english, title_english) %>%
-  mutate(text = paste(title_english, abstract_english)) %>%
-  unnest_tokens(output=word,input=text)
+texts <- bind_rows(text_tit, text_tok)
 
 stop_w <- tibble(word = stopwords("en"))
 
 # remove stopwords
-text <- text_tok %>% 
+text <- texts %>% 
   anti_join(stop_w, by="word")%>% arrange(word) 
 
 # remove other non-words (numbersm characters) and stopwords
-text <- text %>% slice(-c(1:285)) %>% # number and some symbols
+text <- text %>% dplyr::slice(-c(1:276)) %>% # number and some symbols
           filter(nchar(word)!=1) %>% # letters alone
           filter(!word %in% c("mpas", "δ13c", "β", "can", "aff", "agb"< "al"))
 
 # solving some simple plurals
-plural <- c("actions","advances", "adaptations", "amphibians", "animals",
-            "ants","anurans","abundances","adjustments","adults","affects",
-            "applications","approaches", "bees","builds", "birds","palms",
-            "cerrados","challenges", "outputs",  "queens", "techniques",
-            "continents","crops", "consequences", "questions",
+plural <- c("actions","advances", "adaptations", "amphibians", "animals", 
+            "ants","anurans",
+            "applications","approaches", "bees","builds", "birds",
+            "cerrados","challenges", "biologists", "captures",
+            "continents","crops", 
             "decisions","declines","determines","determinants", "defenses",
-            "dynamics","agroecosystems","benefits","biomes",
+            "dynamics", "dunnocks",
             "economics", "ecosystems","environments", "experiences",
-            "forests","grasslands","cases","cells","changes","chances",
-            "genetics","gifts","gradients","guides","impacts",
-            "increases","interactions","lives",
+            "forests", "fruits", "fathers",
+            "genetics","gifts","gradients","guides","impacts", "islands",
+            "increases","interactions", "jobs",  "lives", "insects",
             "landscapes","males","mammals", "mangroves","models","movements",
             "mutualisms","networks","neotropics",
-            "opilions","phenotypes","plants","projects","paths", "perspectives","allows","areas", "assemblages","assessments",
-            "populations","promotes","relationships", "relations",
+            "opilions","phenotypes","plants","projects","paths", "perspectives",
+            "purposes", "populations","promotes","relationships", "relations",
             "resources","responses","roads","services","skulls","snakes","seeds",
-            "spaces", "spiders","stages", "trees", "variations",
-            "threats", "characteristics", "climates","collaborations", "contexts")
+            "soils", "spaces", "spiders","stages", "trees", "variations",
+            "threats")
 
 text$word[text$word %in% plural] <- 
   substr(text$word[text$word %in% plural],
@@ -108,30 +120,15 @@ text$word[text$word %in% plural] <-
 
 ```{r}
 lemma <- rbind(c("adaptive", "adaptation"),
-               c("abilities","ability"),
                c("advancement", "advance"),
-               c("abundant","abundance"),
-                c("academies","academic"),
-                c("academic","academic"),
-               c("absent","absence"),
-                c("activities","activity"),
-                c("accomplished","accomplish"),
-                c("accounting","account"),
                c("agricultural", "agriculture"),
                c("agro", "agriculture" ),
                c("amazonia","amazon" ),
                c("amazonian","amazon" ),
-                c("allowed","allow"),
-                c("allowing","allow"),
                c("andean","andes"),
                c("apply","application"),
-                c("analysed","analysis"),
-                c("analyzed","analysis"),
-                c("analyzing","analysis"),
-                c("analyses","analysis"),
-                c("analytic","analysis"),
-                c("analytical","analysis"),
                c("applying","application"),
+               c("approaches", "approach"),
                c("apidae","apis"),
                c("arachnida","arachnid"),
                c("argue","argument"),
@@ -141,16 +138,11 @@ lemma <- rbind(c("adaptive", "adaptation"),
                c("bignonieae", "bignoniaceae"),
                c("biological", "biology"),
                c("brazilian","brazil"),
-                c("brazil's","brazil"),
-               c("brazil’s","brazil"),
                c("building","build"),
+               c("butterflies", "butterfly"),
                c("changing", "change"),
                c("cnidarian", "cnidaria"),
-               c("caused", "cause"),
-               c("causes","cause"),
-               c("causing", "cause"),
                c("coastal","coast"),
-                c("changed", "change"),
                c("colour", "color"),
                c("colors", "color"),
                c("communities","community" ),
@@ -158,7 +150,6 @@ lemma <- rbind(c("adaptive", "adaptation"),
                c("complexity", "complex"),
                c("convergences", "convergence"),
                c("convergent", "convergence"),
-               c("cordatus","cordata" ),
                c("croplands","crop"),
                c( "cultural", "culture"),
                c("darwin's", "darwin"),
@@ -189,9 +180,6 @@ lemma <- rbind(c("adaptive", "adaptation"),
                c("functional", "function"),
                c("functionally", "function"),
                c("functioning", "function"),
-               c("frequencies", "frequency"),
-               c("frequently", "frequency"),
-               c("frequent", "frequency"),
                c("geographical", "geographic"),
                c("heterogeneties", "heterogeneity"),
                c("heterogeneous", "heterogeneity"),
@@ -270,22 +258,13 @@ for (i in 1:dim(lemma)[1]){
 ```
 
 
+
 # WORDS - all data
 
 ```{r}
 table(text$gender)
 table(text$position_cat ,text$gender)
 ```
-
-Mean number of words by title+abstract
-```{r}
-text %>% count(id,gender) %>%
-  ggplot(aes(x=gender, y=n)) + 
-  geom_violin() + geom_boxplot(width=0.2)+
-  ylab("Number of words in title + abtract")
-  ggbeeswarm::geom_quasirandom(size=3, shape=21) 
-```
-
 
 
 20 more common workds
@@ -546,6 +525,7 @@ LDA - latent Dirichlet allocation method for fiting topic model
 
 > Every topic is a mixture of words
 
+
 ```{r}
 matext <- text %>% count(id, gender, word) %>% mutate(id = paste(id, gender, sep="_")) %>%
   select(-gender) %>%
@@ -706,225 +686,5 @@ classifiP %>%
 Chi-square test 
 ```{r}
 chisq.test(classifiP$gender, classifiP$topic)
-```
-
-
-# Sentiment analysis
-
-Chapter 2, Silge & RObinson. 2018
-
-- The NRC lexicon categorizes words in a binary fashion (“yes”/“no”) into categories of positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust.
-```{r}
-get_sentiments("nrc")
-```
-
-- The Bing lexicon categorizes words in a binary fashion into positive and negative categories.
-```{r}
-get_sentiments("bing")
-```
-
-- The AFINN lexicon assigns words with a score that runs between -5 and 5, with neg‐ ative scores indicating negative sentiment and positive scores indicating positive sen‐ timent.
-```{r}
-get_sentiments("afinn")
-```
-
-**PENSAR**: tem que levar em conta número de palavras diferentes entre abstracts - principalmente se ouver diferença média de número de palavras por abstract de homens e mulehres né? ou não? 
-
-## Score words difference in female and male abstracts
-
-### All data
-
-```{r}
-affword <- get_sentiments("afinn")
-
-affc <- text %>%
-  count(id, gender, word, sort = TRUE) %>%
-  inner_join(affword, "word")
-```
-
-Calculating the mean of the scores for each abtract (weighted by number of time the word appears) by gender:
-
-```{r}
-affc2 <- affc %>% group_by(id, gender) %>%
-  summarise(sum = sum(value*n),
-            mean.score = mean(value),
-            weig.score = weighted.mean(value,n))
-ggplot(affc2, aes(x=gender,y=weig.score)) +
-  geom_violin() +
-  geom_boxplot(width=0.1) +
-    geom_quasirandom()+
-  ggtitle("Mean words score per abstract and gender")
-```
-```{r}
-ggplot(affc2, aes(x=gender,y=sum)) +
-  geom_violin() +
-  geom_boxplot(width=0.1) +
-    geom_quasirandom()+
-  ggtitle("SUM words score per abstract and gender")
-```
-
-
-
-## Professors
-
-```{r}
-affword <- get_sentiments("afinn")
-
-affcP <- textP %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(affword, "word")
-```
-
-Calculating the mean of the scores for each abtract (weighted by number of time the word appears) by gender:
-
-```{r}
-affc2P <- affcP %>% group_by(id, gender) %>%
-  summarise(sum = sum(value*n),
-            mean.score = mean(value),
-            weig.score = weighted.mean(value,n))
-ggplot(affc2P, aes(x=gender,y=weig.score)) +
-  geom_violin() +
-  geom_boxplot(width=0.1) +
-    geom_quasirandom()+
-  ggtitle("Mean words score per abstract and gender")
-```
-```{r}
-ggplot(affc2P, aes(x=gender,y=sum)) +
-  geom_violin() +
-  geom_boxplot(width=0.1) +
-    geom_quasirandom()+
-  ggtitle("SUM words score per abstract and gender")
-```
-
-
-## Frequency of sentiment words per abstract
-
-As classificações das palavras não me parecem muito acuradas com a linguagem científica. 
-
-Precisa saber como ponderar pelo total de palavras.
-
-### All data
-```{r, fig.height=8}
-nrcword <- get_sentiments("nrc")
-
-nrc <- text %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(nrcword, "word") %>%
-  group_by(id,gender,sentiment) %>%
-  summarise(n= sum(n))
-
-ggplot(nrc, aes(x=gender, y=n)) +
-  facet_wrap(~sentiment) +
-  geom_violin() +
-    geom_quasirandom()
-```
-```{r}
-text %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(nrcword, "word") %>%
-  filter(sentiment %in% c("positive", "negative")) %>%
-  group_by(gender,sentiment, word) %>%
-  summarise(n= sum(n)) %>% 
-  group_by(gender, sentiment) %>% top_n(5,n) %>%
-  ggplot(aes(word, n, fill=sentiment)) + geom_col(show.legend = FALSE) +
-facet_grid(sentiment~ gender, scales = "free") + coord_flip()
-```
-
-### Professors
-
-```{r, fig.height=8}
-nrcword <- get_sentiments("nrc")
-
-nrc <- textP %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(nrcword, "word") %>%
-  group_by(id,gender,sentiment) %>%
-  summarise(n= sum(n))
-
-ggplot(nrc, aes(x=gender, y=n)) +
-  facet_wrap(~sentiment) +
-  geom_violin()+
-    geom_quasirandom()
-```
-
-```{r}
-nrc %>% filter(sentiment == "positive") %>%
-ggplot( aes(x=gender, y=n)) +
-  geom_violin() +
-  geom_boxplot(width=0.2) +
-    geom_quasirandom()+
-  ggtitle("Positive words")
-```
-```{r}
-textP %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(nrcword, "word") %>%
-  filter(sentiment %in% c("positive", "negative")) %>%
-  group_by(gender,sentiment, word) %>%
-  summarise(n= sum(n)) %>% 
-  group_by(gender, sentiment) %>% top_n(5,n) %>%
-  ggplot(aes(word, n, fill=sentiment)) + geom_col(show.legend = FALSE) +
-facet_grid(sentiment~ gender, scales = "free") + coord_flip()
-```
-
-
-## Frequency of sentiment words per abstract
-
-## All data
-```{r}
-bingword <- get_sentiments("bing")
-
-bing <- text %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(bingword, "word") %>%
-  group_by(id,gender,sentiment) %>%
-  summarise(n= sum(n))
-
-ggplot(bing, aes(x=sentiment, y=n)) +
-  facet_wrap(~gender) +
-  geom_violin()+
-    geom_quasirandom()
-```
-
-most common positive and negative words by gender
-```{r}
-text %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(bingword, "word") %>%
-  group_by(gender, sentiment, word) %>% 
-  summarise(n=sum(n)) %>%
-  group_by(gender, sentiment) %>% top_n(5,n) %>%
-  ggplot(aes(word, n, fill=sentiment)) + geom_col(show.legend = FALSE) +
-facet_grid(sentiment~ gender, scales = "free") + coord_flip()
-```
-
-
-## Professors
-
-```{r}
-bingword <- get_sentiments("bing")
-
-bing <- textP %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(bingword, "word") %>%
-  group_by(id,gender,sentiment) %>%
-  summarise(n= sum(n))
-
-ggplot(bing, aes(x=gender, y=n)) +
-  facet_wrap(~sentiment) +
-  geom_violin() +
-  geom_boxplot(width=0.2) +
-    geom_quasirandom()
-```
-
-```{r}
-textP %>%
-  count(id,gender,word, sort = TRUE) %>%
-  inner_join(bingword, "word") %>%
-  group_by(gender, sentiment, word) %>% 
-  summarise(n=sum(n)) %>%
-  group_by(gender, sentiment) %>% top_n(5,n) %>%
-  ggplot(aes(word, n, fill=sentiment)) + geom_col(show.legend = FALSE) +
-facet_grid(sentiment~ gender, scales = "free") + coord_flip()
 ```
 

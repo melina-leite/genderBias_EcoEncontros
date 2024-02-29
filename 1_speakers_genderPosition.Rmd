@@ -28,7 +28,7 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 
 # Data
 
-Data description and summary in script `0_data_summary`.
+Data description and summary statistics in script `0_data_summary`.
 
 ```{r}
 load("data_clean/data_proportion.Rdata")
@@ -76,6 +76,10 @@ kable(AICtab(mod0,mod1,mod2,mod3,mod4, base=T, weights=T), digits=2)
 
 ## Residual diagnostic of the selected models
 
+Using the `DHARMa` package.
+
+The two most plausible models presented a satisfactory residual diagnostic.
+
 ```{r}
 plot(simulateResiduals(mod4))
 plot(simulateResiduals(mod2))
@@ -83,18 +87,17 @@ plot(simulateResiduals(mod2))
 
 ## Models results
 
-Using 1:1 population gender ratio
+Predicting the proportion of female speakers fixing the population gender ration at 1 (1:1).
+
 ```{r}
 summary(mod4)
 performance::r2(mod4)
 my4 <- ggpredict(mod4, terms=c("position_cat","affirm_action",
                                  "ratioFcat[1]"))
-plot(my4) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
 ```
 
 
-```{r fig prop}
+```{r fig prop, echo=F}
 suma <- data %>% count(position_cat, affirm_action,fem) %>%
   mutate(position_cat = fct_relevel(position_cat, "student", "postdoc", "professor"))
 prs <- as.data.frame(my4)
@@ -112,7 +115,7 @@ ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
   xlab("Academic position")+
   theme(text = element_text(size=20),
         axis.text = element_text(size=18))
-ggsave("figures/prop_female_speakers_model.jpeg", width=9, height = 6)  
+ggsave("figures/FIG_2_prop_female_speakers_model.jpeg", width=9, height = 6)  
 ```
 
 ```{r}
@@ -120,7 +123,19 @@ summary(mod2)
 performance::r2(mod2)
 my2 <- ggpredict(mod2, terms=c( "position_cat",
                                  "ratioFcat[1]"))
-plot(my2) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
 ```
+
+
+```{r, echo=F}
+prs2 <- as.data.frame(my2)
+ggplot(prs2, aes(x=x, y=predicted, ymin=conf.low, ymax=conf.high)) +
+  geom_pointrange()+
+   geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
+  ylab("Proportion of female speakers")+
+  xlab("Academic position")+ ylim(0,1)+
+  theme(text = element_text(size=20),
+        axis.text = element_text(size=18))
+ggsave("figures/FIG_S2_prop_female_speakers_model2.jpeg", width=9, height = 6)  
+```
+
 

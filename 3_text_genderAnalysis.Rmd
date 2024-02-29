@@ -32,7 +32,7 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 
 # Data
 
-Data description and summary in script `0_data_summary`.
+Data description and summary statistics in script `0_data_summary`.
 
 ```{r}
 load("data_clean/data_title.Rdata")
@@ -53,8 +53,8 @@ Total of `r dim(tit)[1]` titles.
 
 Number of titles per group
 ```{r}
-table(tit$gender)
-table(tit$position_cat,tit$gender)
+table(tit$gender) %>% kable()
+table(tit$position_cat,tit$gender) %>% kable()
 ```
 
 
@@ -70,8 +70,8 @@ Total of `r dim(data_abs)[1]` abstracts.
 
 Number of abstracts per group
 ```{r}
-table(data_abs$gender)
-table(data_abs$position_cat,data_abs$gender)
+table(data_abs$gender) %>% kable()
+table(data_abs$position_cat,data_abs$gender)%>% kable()
 ```
 
 
@@ -83,12 +83,13 @@ stop_w <- tibble(word = stopwords("en"))
 
 # remove stopwords
 text <- texts %>% 
-  anti_join(stop_w, by="word")%>% arrange(word) 
+  anti_join(stop_w, by="word") %>% arrange(word) 
 
 # remove other non-words (numbersm characters) and stopwords
-text <- text %>% dplyr::slice(-c(1:276)) %>% # number and some symbols
+text <- text %>% dplyr::slice(-c(1:281)) %>% # number and some symbols
           filter(nchar(word)!=1) %>% # letters alone
-          filter(!word %in% c("mpas", "δ13c", "β", "can", "aff", "agb"< "al"))
+          filter(!word %in% c("mpas", "δ13c", "β", "can", "aff", "agb", "al",
+                              "and","são"))
 
 # solving some simple plurals
 plural <- c("actions","advances", "adaptations", "amphibians", "animals", 
@@ -116,7 +117,7 @@ text$word[text$word %in% plural] <-
 ```
 
 
-- Grouping similar words:
+Grouping similar words:
 
 ```{r}
 lemma <- rbind(c("adaptive", "adaptation"),
@@ -261,9 +262,11 @@ for (i in 1:dim(lemma)[1]){
 
 # WORDS - all data
 
+Number of words per gender and academic position
+
 ```{r}
-table(text$gender)
-table(text$position_cat ,text$gender)
+table(text$gender) %>% kable()
+table(text$position_cat ,text$gender)%>% kable()
 ```
 
 
@@ -277,10 +280,12 @@ text %>%
 
 ## Word cloud
 
+All words
 ```{r}
 textplot_wordcloud(x=dfm(tokens(text$word)))
 ```
 
+By gender. Purple female, yellow male
 ```{r}
 par(mfrow=c(1,2))
 textplot_wordcloud(x=dfm(tokens(text$word[text$gender=="F"])),
@@ -307,24 +312,28 @@ props$label <- NA
 props$label[1:20] <- props$word[1:20]
 ```
 
-
-```{r}
+```{r, echo=F}
 ggplot(props, aes(x=proportion_M,, y=proportion_F,
        color=abs.dif.p)) + 
   geom_abline(color = "gray40", lty = 2) +
-  #geom_point(size=2.5, alpha=0.5)+
-  geom_jitter(size=2.5, alpha=0.2)+
-  geom_text_repel(aes(label=label), size=3.2)+
-  scale_x_log10(name="Male most used words",
+  geom_point(size=1, alpha=0.1)+
+ # geom_jitter(size=2.5, alpha=0.02)+
+  geom_text(aes(label=word), check_overlap = T,vjust=1,hjust=0.32)+
+  #geom_text_repel(aes(label=label), size=3.2)+
+  #xlim(0,1)+ylim(0,0.2)+
+  scale_x_log10(name="Male most used words", limits=c(7.446570e-05,0.016),
                 labels = percent_format()) +
   scale_y_log10(name="Female most used words",
                 labels = percent_format()) +
-  scale_color_gradient(name="Abs Diff",low = "blue", high = "red",
-                       labels=percent_format())  +
+  scale_color_gradient(name="Absolute \n difference",low = "blue", high = "red",
+                       labels=percent_format()
+                       )  +
   theme(legend.justification = c(1, -0.1), legend.position = c(1, 0))
  # geom_smooth(method="lm")
-ggsave("figures/abstract_wordFreq.jpg", height = 5, width=7)
+ggsave("figures/FIG_4_wordFreq.jpg", height = 7, width=9)
 ```
+
+
 
 Words that are close to the dashed line have similar frequencies in both genders. Words that are far from the line are words that are found more in one set of texts than another.
 
@@ -356,8 +365,6 @@ ggplot(prop2, aes(x=proportion, y=word,fill=gender)) +
              col="darkgray") +
   scale_x_continuous(breaks=c(-0.02,-0.01,0,0.01,0.02),
                      labels = c(0.02,0.01,0,0.01,0.02))
-  
-ggsave("figures/abstract_wordFreq_barplot.jpeg", units="in", width=7, height=7, dpi=300)
 ```
 
 ## TF IDF
@@ -440,22 +447,26 @@ propsP$label[1:20] <- propsP$word[1:20]
 ```
 
 ```{r}
-ggplot(propsP, aes(x=proportion_M, y=proportion_F,
+ggplot(propsP, aes(x=proportion_M,, y=proportion_F,
        color=abs.dif.p)) + 
   geom_abline(color = "gray40", lty = 2) +
- # geom_point(size=2.5, alpha=0.3) +
-  geom_jitter(size=2.5, alpha=0.3)+
-  geom_text_repel(aes(label=label), size=3)+
-  scale_x_log10(name="Male most used words",   limits=c(0.0003,0.02),
+  geom_point(size=1, alpha=0.1)+
+ # geom_jitter(size=2.5, alpha=0.02)+
+  geom_text(aes(label=word), check_overlap = T,vjust=1,hjust=0.32)+
+  #geom_text_repel(aes(label=label), size=3.2)+
+  #xlim(0,1)+ylim(0,0.2)+
+  scale_x_log10(name="Male most used words", limits=c(0.0003,0.02),
                 labels = percent_format()) +
-  scale_y_log10(name="Female Most used words", limits=c(0.0003,0.02),
+  scale_y_log10(name="Female most used words",limits=c(0.0003,0.02),
                 labels = percent_format()) +
-  scale_color_gradient(name="Abs Diff",low = "blue", high = "red",
-                       labels=percent_format())  +
+  scale_color_gradient(name="Absolute \n difference",low = "blue", high = "red",
+                       labels=percent_format()
+                       )  +
   theme(legend.justification = c(1, -0.1), legend.position = c(1, 0))
  # geom_smooth(method="lm")
-ggsave("figures/abstract_wordFreq_Prof.jpg", height = 5, width=7)
+ggsave("figures/FIG_S4_wordFreq_Prof.jpg", height = 7, width=9)
 ```
+
 
 Words that are close to the dashed  line in these plots have similar frequencies in both genders. Words that are far from the line are words that are found more in one set of texts than another.
 
@@ -488,8 +499,6 @@ ggplot(propP2, aes(x=proportion, y=word,fill=gender)) +
              col="darkgray") +
   scale_x_continuous(breaks=c(-0.02,-0.01,0,0.01,0.02),
                      labels = c(0.02,0.01,0,0.01,0.02))
-  
-ggsave("figures/abstract_wordFreq_barplot_Prof.jpeg", units="in", width=7, height=7, dpi=300)
 ```
 
 

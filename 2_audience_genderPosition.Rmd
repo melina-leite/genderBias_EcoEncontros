@@ -31,7 +31,7 @@ options(formatR.arrow = TRUE, width = 90, help_type = "html")
 
 # Data
 
-Data description and summary in script `0_data_summary`.
+Data description and summary statitiscs in script `0_data_summary`.
 
 ```{r}
 load("data_clean/data_audience.Rdata")
@@ -40,7 +40,9 @@ data <- data_a
 
 # Modeling
 
-Negative binomial mixed-effects model with the year as random intercept.
+The audience (number of attendants in the seminar) is modeled by the gender (male, female), the academic position (student, postdoc, professor) of the speaker, and affirmative actions (before, after).
+
+Negative binomial mixed-effects model with year as random intercept.
 
 ```{r}
 mg0 <- glmmTMB(audience_n~ 1 + (1|year), data=data, family= nbinom2)
@@ -72,11 +74,17 @@ mg12 <- glmmTMB(audience_n~ gender + position_cat * affirm_action + (1|year),
 mg13 <- glmmTMB(audience_n~ gender * position_cat * affirm_action + (1|year), 
                data=data, family= nbinom2)
 
-AICtab(mg0,mg1,mg2, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10,mg11,mg12,mg13,      base=T, weights=T) %>% kable(digits=2)
+AICtab(mg0,mg1,mg2, mg3, mg4,mg5,mg6,mg7,mg8,mg9,mg10,mg11,mg12,mg13, base=T, 
+       weights=T) %>% 
+  kable(digits=2)
 ```
 
 
 ## Residual diagnostic
+
+Using the `DHARMa` package.
+
+The two most plausible models presented a satisfactory residual diagnostic.
 
 ```{r}
 plot(simulateResiduals(mg11))
@@ -100,11 +108,10 @@ performance::r2(mg11)
 myg11 <- ggpredict(mg11, terms=c("position_cat","gender", "affirm_action"))
 prs <- as.data.frame(myg11) %>% rename(affirm_action = facet)
 colnames(prs)[1] <- "position_cat"
-#kable(prs , digits = 0)
 ```
 
 
-```{r}
+```{r, echo=F}
 ggplot(data, aes(x=affirm_action, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
@@ -121,7 +128,7 @@ ggplot(data, aes(x=affirm_action, y=audience_n)) +
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
     xlab("Affirmative actions") + ylab("Audience (N)") 
 
-ggsave("figures/audience_speakers_b.jpeg", width=8, height = 4)  
+#ggsave("figures/audience_speakers_b.jpeg", width=8, height = 4)  
 ```
 
 
@@ -137,7 +144,7 @@ pr10 <- as.data.frame(myg10) %>% rename(affirm_action = facet)
 colnames(pr10)[1] <- "position_cat"
 ```
 
-```{r}
+```{r, echo=F}
 ggplot(data, aes(x=affirm_action, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
@@ -153,7 +160,7 @@ ggplot(data, aes(x=affirm_action, y=audience_n)) +
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
     xlab("Affirmative actions") + ylab("Audience (N)") 
 
-ggsave("figures/audience_speakers_b.jpeg", width=8, height = 4)  
+ggsave("figures/FIG_S3_audience_speakers_model2.jpeg", width=8, height = 4)  
 ```
 
 
@@ -177,6 +184,10 @@ Productivity publication metrics
 
 ```{r}
 pca1 <- PCA(dp[, c(22:29)], graph=F)
+```
+
+
+```{r, eval=F}
 p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
                       col.ind.sub="none",  geom="point",
                       repel = TRUE) +
@@ -190,7 +201,7 @@ p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
   theme_cowplot()
 
 p1
-ggsave("figures/pca_biplot.jpeg", width=6, height = 6)  
+#("figures/pca_biplot.jpeg", width=6, height = 6)  
 ```
 
 For the analysis specific for professor talks (N=`r length(dp$id)`), the PCA results show that all the productivity metrics for professors were highly correlated (Figure 2B) with the first axis (52% of variance explained) while the institution indexes composed the second PCA axis (21% of variation explained).
@@ -220,7 +231,10 @@ AICtab(m0,m1,m2,m3,m4,
 
 ## Residual diagnostic
 
-Best model
+Using the `DHARMa` package.
+
+The two most plausible models presented a satisfactory residual diagnostic.
+
 ```{r}
 plot(simulateResiduals(m3))
 plot(simulateResiduals(m4))
@@ -236,7 +250,7 @@ performance::r2(m3)
 We used the first PCA axis as predictors together with gender to explain the professor's audience, and found that, as expected, audience increases with productivity index (first PCA axis) but female professors still presented on average audience *1.4* times smaller than male professors.
 
 
-```{r}
+```{r, echo=F}
 my3 <- ggpredict(m3, terms=c("pc1","gender", "affirm_action[before]")) %>% as.data.frame()
 ggplot(my3, aes(x=x, y=predicted, col=group)) +
   geom_ribbon(aes(ymin=conf.low,ymax=conf.high, fill=group), alpha=0.3,
@@ -247,7 +261,6 @@ ggplot(my3, aes(x=x, y=predicted, col=group)) +
    theme_cowplot() + ggtitle("") +
   ylab("Audience (N)") + xlab("Productivity index (PC1 axis)")+
   geom_point(data=dp, aes(x=pc1, y=audience_n, col=gender), alpha=0.6)
-ggsave("figures/audience_professor.jpeg", width=9, height = 6)  
 ```
 
 ```{r}
@@ -270,16 +283,15 @@ ggplot(my4, aes(x=x, y=predicted, col=group)) +
 #ggsave("figures/audience_professor.jpeg", width=9, height = 6)  
 ```
 
-# Figure audience
+# Figure 3 audience
 
-```{r, fig.height=9, fig.width=9}
+```{r,echo=F, fig.height=9, fig.width=9}
 prs <- as.data.frame(myg11) %>% rename(affirm_action = facet,
                                         position_cat=x)
 f1 <- ggplot(data, aes(x=affirm_action, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
   facet_grid(~position_cat) +
- #scale_color_manual(values = c("#b2abd2", "#fdb863")) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
   scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
   geom_pointrange(data=prs, aes(x=affirm_action, y=predicted,fill=group,
@@ -291,12 +303,11 @@ f1 <- ggplot(data, aes(x=affirm_action, y=audience_n)) +
   
 my3 <- ggpredict(m3, terms=c("pc1","gender"))
 my3 <- as.data.frame(my3)
-#my3$prof <- "Professors only"
+
 f2 <- ggplot(my3, aes(x=x, y=predicted, col=group)) +
   geom_ribbon(aes(ymin=conf.low,ymax=conf.high, fill=group), alpha=0.3,
              colour = NA) +
     geom_line(size=0.9)+
-  #facet_grid(~prof)+
   scale_color_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
   scale_fill_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
    theme_cowplot() + ggtitle("") +
@@ -320,17 +331,10 @@ p1<- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
   xlab("PC1 (52%)") + ylab("PC2 (21%)") +
   theme_cowplot() +
   theme(legend.position="none",
-        plot.title = element_text(size=12, vjust=2, hjust=0.5)) #+
-  #coord_cartesian(clip = "off")+
-  # scale_x_continuous(limits=c(-6,8), expand=c(0,0))+
-  # scale_y_continuous(limits=c(-4,8), breaks=c(-4,-2,0,2,4,6))
-  # annotate("rect", xmin=-6, xmax=8, ymin=7,ymax=8, fill="gray85")+
-  #annotate("text",label="Professors'productivity", x=0, y=7.5, fill="gray85")
-
-
+        plot.title = element_text(size=12, vjust=2, hjust=0.5))
 
 f1/(p1+f2) +plot_layout(guides="collect", heights = c(0.9,1))
-ggsave("figures/FIG_audience.jpeg", width=10, height = 9)  
+ggsave("figures/FIG_3_audience.jpeg", width=10, height = 9)  
 ```
 
 

@@ -1617,8 +1617,8 @@ career position</a></h2>
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
                   <p class="author"><span class="glyphicon glyphicon-user"></span> Melina
 Leite, Júlia Barreto &amp; Isabella Romitelli</p>
-                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> 29
-de Fevereiro de 2024</p>
+                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> 08
+de Abril de 2024</p>
           </div>
    </div>
      
@@ -1638,8 +1638,8 @@ de Fevereiro de 2024</p>
 <div id="modeling" class="section level1">
 <h1>Modeling</h1>
 <p>The audience (number of attendants in the seminar) is modeled by the
-gender (male, female), the academic position (student, postdoc,
-professor) of the speaker, and affirmative actions (before, after).</p>
+gender (male, female), the academic level (student, postdoc, professor)
+of the speaker, and affirmative actions (before, after).</p>
 <p>Negative binomial mixed-effects model with year as random
 intercept.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>mg0 <span class="ot">&lt;-</span> <span class="fu">glmmTMB</span>(audience_n<span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>year), <span class="at">data=</span>data, <span class="at">family=</span> nbinom2)</span>
@@ -1798,9 +1798,9 @@ diagnostic.</p>
 <div id="models-result" class="section level2">
 <h2>Models result</h2>
 <p>The two equally plausible models for the audience included gender,
-academic position and affirmative actions as predictors, with the
+academic level and affirmative actions as predictors, with the
 difference that the best fitted model includes an interaction of gender
-and academic position.</p>
+and academic level.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">summary</span>(mg11)</span></code></pre></div>
 <pre><code>##  Family: nbinom2  ( log )
 ## Formula:          audience_n ~ gender * position_cat + affirm_action + (1 | year)

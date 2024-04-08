@@ -40,7 +40,7 @@ data <- data_a
 
 # Modeling
 
-The audience (number of attendants in the seminar) is modeled by the gender (male, female), the academic position (student, postdoc, professor) of the speaker, and affirmative actions (before, after).
+The audience (number of attendants in the seminar) is modeled by the gender (male, female), the academic level (student, postdoc, professor) of the speaker, and affirmative actions (before, after).
 
 Negative binomial mixed-effects model with year as random intercept.
 
@@ -96,7 +96,7 @@ plot(simulateResiduals(mg10))
 
 ## Models result
 
-The two equally plausible models for the audience included gender, academic position and affirmative actions as predictors, with the difference that the best fitted model includes an interaction of gender and academic position.
+The two equally plausible models for the audience included gender, academic level and affirmative actions as predictors, with the difference that the best fitted model includes an interaction of gender and academic level.
 
 ```{r echo=TRUE}
 summary(mg11)

@@ -262,7 +262,7 @@ for (i in 1:dim(lemma)[1]){
 
 # WORDS - all data
 
-Number of words per gender and academic position
+Number of words per gender and academic level
 
 ```{r}
 table(text$gender) %>% kable()

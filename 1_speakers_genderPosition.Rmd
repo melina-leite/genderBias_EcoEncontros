@@ -46,7 +46,7 @@ data$fem[data$gender == "M"] <- 0
 
 # Modeling
 
-Proportions of female speakers by academic position, before and after affirmative actions. Controling for population proportions: the ratio of females at the graduate program by academic position and year.
+Proportions of female speakers by academic level, before and after affirmative actions. Controling for population proportions: the ratio of females at the graduate program by academic level and year.
 
 ```{r}
 data <- data %>% left_join(pop2[,c(1:2,10)], by=c("year", "position_cat"="category")) %>%
@@ -112,7 +112,7 @@ ggplot(suma, aes(x=position_cat, y=fem,col=affirm_action))+
   scale_color_manual(name="Affirmative \n actions", 
                      values = c("goldenrod", "green4")) +
   ylab("Proportion of female speakers")+
-  xlab("Academic position")+
+  xlab("Academic level")+
   theme(text = element_text(size=20),
         axis.text = element_text(size=18))
 ggsave("figures/FIG_2_prop_female_speakers_model.jpeg", width=9, height = 6)  
@@ -132,7 +132,7 @@ ggplot(prs2, aes(x=x, y=predicted, ymin=conf.low, ymax=conf.high)) +
   geom_pointrange()+
    geom_hline(yintercept = 0.5, linetype="dashed", col='gray') +
   ylab("Proportion of female speakers")+
-  xlab("Academic position")+ ylim(0,1)+
+  xlab("Academic level")+ ylim(0,1)+
   theme(text = element_text(size=20),
         axis.text = element_text(size=18))
 ggsave("figures/FIG_S2_prop_female_speakers_model2.jpeg", width=9, height = 6)  

@@ -131,6 +131,24 @@ ggplot(data, aes(x=affirm_action, y=audience_n)) +
 #ggsave("figures/audience_speakers_b.jpeg", width=8, height = 4)  
 ```
 
+```{r, eval=F, echo=F}
+ggplot(data, aes(x=position_cat, y=audience_n)) +
+  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
+             size=3,show.legend = F) +
+  facet_grid(~affirm_action, labeller = 
+               as_labeller(c(before = "Before Affirmative action",
+                             after =  "After Affirmative action"))) +
+  scale_color_manual(values = c("#6D57CF","#FCA532")) +
+  #scale_x_discrete(labels = c("Before", "After"))+
+  #scale_y_log10()+
+  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+  geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
+                                ymax=conf.high, ymin=conf.low), alpha=1,
+             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
+    xlab("Academic level") + ylab("Audience (N)")
+ggsave("figures/FIG_3a_alternative.jpeg", width=8, height = 4)  
+
+```
 
 
 ```{r echo=TRUE}
@@ -144,7 +162,7 @@ pr10 <- as.data.frame(myg10) %>% rename(affirm_action = facet)
 colnames(pr10)[1] <- "position_cat"
 ```
 
-```{r, echo=F}
+```{r Fig_S3, echo=F}
 ggplot(data, aes(x=affirm_action, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
@@ -177,6 +195,8 @@ Creating productivity index using PCA 1st axis from metrics.
 ```{r}
 dp <- data %>% filter(!is.na(data$total_citation_n),
                       !is.na(data$nature_index_count))
+colnames(dp)[22:29] <- c("tot_cit", "h", "i10", "most_cit", "cit_cum",
+                        "career_Y", "nature_count", "nature_share")
 table(dp$gender, dp$affirm_action)
 ```
 
@@ -338,7 +358,58 @@ ggsave("figures/FIG_3_audience.jpeg", width=10, height = 9)
 ```
 
 
+```{r, echo=F, eval=F}
+f1alter <- ggplot(data, aes(x=position_cat, y=audience_n)) +
+  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
+             size=3,show.legend = F) +
+  facet_grid(~affirm_action, labeller = 
+               as_labeller(c(before = "Before Affirmative action",
+                             after =  "After Affirmative action"))) +
+  scale_color_manual(values = c("#6D57CF","#FCA532")) +
+  #scale_x_discrete(labels = c("Before", "After"))+
+  #scale_y_log10()+
+  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+  geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
+                                ymax=conf.high, ymin=conf.low), alpha=1,
+             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
+    xlab("Academic level") + ylab("Audience (N)") +  labs(tag="a)")
+f1alter/(p1+f2) + plot_layout(guides="collect", heights = c(0.9,1))
+ggsave("figures/FIG_3_audience_alternative.jpeg", width=10, height = 9)  
+```
 
+
+
+TEST
+```{r}
+p1alt <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
+                      col.ind.sub="none",  geom="point",labelsize =3,
+                      col.var = "#3B3B3B",
+                      repel = TRUE) +
+  facet_grid(.~.)+
+  xlim(-5.8,7.5)+
+  geom_vline(xintercept = 0, linetype="dashed", col="azure4") + 
+  geom_hline(yintercept = 0, linetype="dashed", col="azure4")+
+  scale_color_manual(name="gender",values = c("#6D57CF","#FCA532"))+
+  scale_shape(name="gender")+
+  scale_fill_manual(name="gender",values = c("#6D57CF","#FCA532"))+
+  ggtitle("")+
+  #labs(title="Professors' productivity") +
+  xlab("PC1 (52%)") + ylab("PC2 (21%)") +
+  theme_cowplot() +
+  theme(legend.position="none",
+        panel.background = element_rect(fill="white"),
+        text = element_text(size=9),
+        axis.text = element_text(size=9),
+        plot.title = element_text(size=12, vjust=2, hjust=0.5))
+
+
+f2 + ggtitle("") + labs(tag="")+ 
+  theme(legend.position="right",
+        plot.title = element_text(size=12, vjust=2, hjust=0.5)) +
+ inset_element(p1alt,
+               0.49, 0.5, 1.03, 1.14)
+ggsave("figures/FIG_3_bc_alternative.jpeg", width=8, height=6)
+```
 
 
 

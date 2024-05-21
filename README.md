@@ -1,8 +1,4 @@
----
-editor_options: 
-  markdown: 
-    wrap: sentence
----
+
 
 # READ ME and METADATA
 

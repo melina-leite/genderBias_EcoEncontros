@@ -112,26 +112,6 @@ colnames(prs)[1] <- "position_cat"
 
 
 ```{r, echo=F}
-ggplot(data, aes(x=affirm_action, y=audience_n)) +
-  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
-             size=3,show.legend = F) +
-  facet_grid(~position_cat, labeller = 
-               as_labeller(c(student = "Student",
-                             postdoc =  "Post-doc",
-                             professor = "Professor"))) +
-  scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  scale_x_discrete(labels = c("Before", "After"))+
-  #scale_y_log10()+
-  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
-  geom_pointrange(data=prs, aes(x=affirm_action, y=predicted,fill=group,
-                                ymax=conf.high, ymin=conf.low), alpha=1,
-             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
-    xlab("Affirmative actions") + ylab("Audience (N)") 
-
-#ggsave("figures/audience_speakers_b.jpeg", width=8, height = 4)  
-```
-
-```{r, eval=F, echo=F}
 ggplot(data, aes(x=position_cat, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
@@ -139,15 +119,12 @@ ggplot(data, aes(x=position_cat, y=audience_n)) +
                as_labeller(c(before = "Before Affirmative action",
                              after =  "After Affirmative action"))) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  #scale_x_discrete(labels = c("Before", "After"))+
-  #scale_y_log10()+
   scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
   geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
     xlab("Academic level") + ylab("Audience (N)")
-ggsave("figures/FIG_3a_alternative.jpeg", width=8, height = 4)  
-
+#ggsave("figures/FIG_3a_alternative.jpeg", width=8, height = 4)  
 ```
 
 
@@ -163,20 +140,18 @@ colnames(pr10)[1] <- "position_cat"
 ```
 
 ```{r Fig_S3, echo=F}
-ggplot(data, aes(x=affirm_action, y=audience_n)) +
+ggplot(data, aes(x=position_cat, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
-  facet_grid(~position_cat, labeller = 
-               as_labeller(c(student = "Student",
-                             postdoc =  "Post-doc",
-                             professor = "Professor"))) +
+  facet_grid(~affirm_action, labeller = 
+               as_labeller(c(before = "Before Affirmative action",
+                             after =  "After Affirmative action"))) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  scale_x_discrete(labels = c("Before", "After")) +
   scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
-  geom_pointrange(data=pr10, aes(x=affirm_action, y=predicted,fill=group,
+  geom_pointrange(data=pr10, aes(x=position_cat, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
-    xlab("Affirmative actions") + ylab("Audience (N)") 
+    xlab("Academic level") + ylab("Audience (N)") 
 
 ggsave("figures/FIG_S3_audience_speakers_model2.jpeg", width=8, height = 4)  
 ```
@@ -308,18 +283,20 @@ ggplot(my4, aes(x=x, y=predicted, col=group)) +
 ```{r,echo=F, fig.height=9, fig.width=9}
 prs <- as.data.frame(myg11) %>% rename(affirm_action = facet,
                                         position_cat=x)
-f1 <- ggplot(data, aes(x=affirm_action, y=audience_n)) +
+f1 <- ggplot(data, aes(x=position_cat, y=audience_n)) +
   geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
              size=3,show.legend = F) +
-  facet_grid(~position_cat) +
+  facet_grid(~affirm_action, labeller = 
+               as_labeller(c(before = "Before Affirmative action",
+                             after =  "After Affirmative action"))) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
-  geom_pointrange(data=prs, aes(x=affirm_action, y=predicted,fill=group,
+  #scale_x_discrete(labels = c("Before", "After"))+
+  #scale_y_log10()+
+  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+  geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
-             position=position_dodge(0.6), size=1, shape=21, col="black") +
-  ylab("Audience (N)")  +
-  xlab("Affirmative actions")+
-  labs(tag="a)")
+             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
+    xlab("Academic level") + ylab("Audience (N)") +  labs(tag="a)")
   
 my3 <- ggpredict(m3, terms=c("pc1","gender"))
 my3 <- as.data.frame(my3)
@@ -358,29 +335,9 @@ ggsave("figures/FIG_3_audience.jpeg", width=10, height = 9)
 ```
 
 
+<!--T
 ```{r, echo=F, eval=F}
-f1alter <- ggplot(data, aes(x=position_cat, y=audience_n)) +
-  geom_point(aes(col=gender), position = position_dodge(0.6), alpha=0.3,
-             size=3,show.legend = F) +
-  facet_grid(~affirm_action, labeller = 
-               as_labeller(c(before = "Before Affirmative action",
-                             after =  "After Affirmative action"))) +
-  scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  #scale_x_discrete(labels = c("Before", "After"))+
-  #scale_y_log10()+
-  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
-  geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
-                                ymax=conf.high, ymin=conf.low), alpha=1,
-             position=position_dodge(0.6), size=1.2, shape=21, col="black") +
-    xlab("Academic level") + ylab("Audience (N)") +  labs(tag="a)")
-f1alter/(p1+f2) + plot_layout(guides="collect", heights = c(0.9,1))
-ggsave("figures/FIG_3_audience_alternative.jpeg", width=10, height = 9)  
-```
-
-
-
 TEST
-```{r}
 p1alt <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
                       col.ind.sub="none",  geom="point",labelsize =3,
                       col.var = "#3B3B3B",

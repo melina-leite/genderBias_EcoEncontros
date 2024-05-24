@@ -119,7 +119,7 @@ ggplot(data, aes(x=position_cat, y=audience_n)) +
                as_labeller(c(before = "Before Affirmative action",
                              after =  "After Affirmative action"))) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+  scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
   geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
@@ -147,7 +147,7 @@ ggplot(data, aes(x=position_cat, y=audience_n)) +
                as_labeller(c(before = "Before Affirmative action",
                              after =  "After Affirmative action"))) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
-  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+  scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
   geom_pointrange(data=pr10, aes(x=position_cat, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
@@ -188,9 +188,9 @@ p1 <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
                       repel = TRUE) +
   geom_vline(xintercept = 0, linetype="dashed") + 
   geom_hline(yintercept = 0, linetype="dashed")+
-  scale_color_manual(name="Gênero",values = c("#6D57CF","#FCA532"))+
-  scale_shape(name="Gênero")+
-  scale_fill_manual(name="Gênero",values = c("#6D57CF","#FCA532"))+
+  scale_color_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
+  scale_shape(name="Gender")+
+  scale_fill_manual(name="Gender",values = c("#6D57CF","#FCA532"))+
   ggtitle("Productivity metrics") +
   xlab("PC1 (52%)") + ylab("PC2 (21%)") +
   theme_cowplot()
@@ -292,7 +292,7 @@ f1 <- ggplot(data, aes(x=position_cat, y=audience_n)) +
   scale_color_manual(values = c("#6D57CF","#FCA532")) +
   #scale_x_discrete(labels = c("Before", "After"))+
   #scale_y_log10()+
-  scale_fill_manual(name="Gênero", values = c("#6D57CF","#FCA532")) +
+  scale_fill_manual(name="Gender", values = c("#6D57CF","#FCA532")) +
   geom_pointrange(data=prs, aes(x=position_cat, y=predicted,fill=group,
                                 ymax=conf.high, ymin=conf.low), alpha=1,
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +

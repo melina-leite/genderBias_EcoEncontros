@@ -1,6 +1,6 @@
 ---
 title: "Gender bias in audience of seminars and career position"
-author: "Melina Leite, Júlia Barreto & Isabella Romitelli"
+author: "Melina Leite & Júlia Barreto"
 date: "`r format(Sys.time(), '%d de %B de %Y')`"
 output:
   rmdformats::readthedown:
@@ -153,7 +153,7 @@ ggplot(data, aes(x=position_cat, y=audience_n)) +
              position=position_dodge(0.6), size=1.2, shape=21, col="black") +
     xlab("Academic level") + ylab("Audience (N)") 
 
-ggsave("figures/FIG_S3_audience_speakers_model2.jpeg", width=8, height = 4)  
+ggsave("figures/FIG_S4_audience_speakers_model2.jpeg", width=8, height = 4)  
 ```
 
 

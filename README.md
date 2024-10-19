@@ -1,4 +1,7 @@
-# READ ME and METADATA
+# README and METADATA
+
+Original study published as Preprint in EcoEvoRxiv **"Is the audience gender-blind? Smaller audience in female talks highlights prestige differences in academia".**
+Published as Preprint in EcoEvoRxiv: https://doi.org/10.32942/X25607. Submitted for recommendation to Peer Community in Ecology.
 
 The present repository contains data, metadata, and modeling analysis source codes necessary to reproduce the EcoEncontros gender bias results. The EcoEncontros is a seminar series of weekly talks at the Ecology Graduate Program at the University of São Paulo (PPGE, IB-USP). The information from all talks between 2008 and 2019 from the EcoEncontros committee attendance list archives (N=344 talks) are presented. We retrieved data about the speaker (gender, academic level, and affiliation) and the seminar (date, title, abstract, and audience). We inferred the speaker's gender by name and photo (always present on the seminars’ posters). We have removed the speakers' names from the data files provided in order to maintain their anonymity.
 

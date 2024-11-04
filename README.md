@@ -1,22 +1,21 @@
 # README and METADATA
 
-Original study published as Preprint in EcoEvoRxiv **"Is the audience gender-blind? Smaller audience in female talks highlights prestige differences in academia".**
-Published as Preprint in EcoEvoRxiv: https://doi.org/10.32942/X25607. Submitted for recommendation to Peer Community in Ecology.
+Original study published as Preprint in EcoEvoRxiv **"Is the audience gender-blind? Smaller audience in female talks highlights prestige differences in academia"** (https://doi.org/10.32942/X25607). Submitted for recommendation to Peer Community in Ecology.
 
 The present repository contains data, metadata, and modeling analysis source codes necessary to reproduce the EcoEncontros gender bias results. The EcoEncontros is a seminar series of weekly talks at the Ecology Graduate Program at the University of São Paulo (PPGE, IB-USP). The information from all talks between 2008 and 2019 from the EcoEncontros committee attendance list archives (N=344 talks) are presented. We retrieved data about the speaker (gender, academic level, and affiliation) and the seminar (date, title, abstract, and audience size). We inferred the speaker's gender by name and photo (always present on the seminars’ posters). We have removed the speakers' names from the data files provided in order to maintain their anonymity.
 
 ## The content is organized into four sections, each with one specific aim:
 
--   0_data_summary: data description, wrangling, and summary statistics. It starts with raw presentation data from 2008 to 2019 (data folder; see metadata below).
+-   `0_data_summary`: data description, wrangling, and summary statistics. It starts with raw presentation data from 2008 to 2019 (data folder; see metadata below).
 
--   1_speakers_genderPosition: modeling source code of objective 1 analyses on gender bias in speakers and academic level.
+-   `1_speakers_genderPosition`: modeling source code of objective 1 analyses on gender bias in speakers and academic level.
     Here, we assess the proportions of female speakers by academic level, before and after affirmative actions.
     We do an extra analysis with only the speakers belonging to the PPGE community, to evaluate if the proportion of female speakers is proportional to the proportion of female academics in the PPGE community.
 
--   2_audience_genderPosition: modeling source code of *objective 2* analyses on gender bias in *audience* of seminars and academic level.
-    Here, the audience (\# number of attendants in the seminar) is modeled by the gender (male, female), the academic level (student, postdoc, professor) of the speaker, and affirmative actions (before and after).
+-  ` 2_audience_genderPosition`: modeling source code of *objective 2* analyses on gender bias in *audience size* of seminars and academic level.
+    Here, the audience size (\# number of attendants in the seminar) is modeled by the gender (male, female), the academic level (student, postdoc, professor) of the speaker, and affirmative actions (before and after).
 
--   3_text_genderAnalysis: modeling source code of *objective 3* containing text analysis from titles and abstracts of the talks.
+-   `3_text_genderAnalysis`: modeling source code of *objective 3* containing text analysis from titles and abstracts of the talks.
 
 When using this data, please cite the Zenodo permanent version of this repository:
 
@@ -36,10 +35,10 @@ Variables:
 * abstract_original = original abstract (in original language).  
 * abstract_language = original language of the talk abstract.  
 * abstract_english = talk abstract in English.  
-* audience_n = \# number of audience attendees.  
-* audience_female = \# number of female audience attendees.  
-* audience_male = \# number of male audience attendees.  
-* audience_NA = \# number audience attendees of unidentified binary gender.  
+* audience_n = \# number of attendees.  
+* audience_female = \# number of female attendees.  
+* audience_male = \# number of male attendees.  
+* audience_NA = \# number of attendees without F/M gender identification.  
 * department = institutional department of affiliation origin.  
 * institute = institute of affiliation origin.  
 * university = university or institution of affiliation origin.  
@@ -59,7 +58,7 @@ Source: <https://www.nature.com/nature-index/>, accessed in 2021.
 * nature_index_share = Share Nature index, a fractional count that considers the percentage of authors from that institution and the number of affiliated institutions per article (Nature Index, 2021).  
 * obs = any necessary information regarding specific talk.  
 
-We also collected information on the gender balance for each academic level in the Graduate Ecology Program during the same period (2008-2019), which is contained in the file "pop_PPGE_2008-2019.csv" within the data folder.
+We also collected information on the gender balance for each academic level in the Graduate Ecology Program during the same period (2008-2019), which is in the file "pop_PPGE_2008-2019.csv" within the data folder and explained in the Rmd script `0_data_summary`.
 
 ## Owners:
 

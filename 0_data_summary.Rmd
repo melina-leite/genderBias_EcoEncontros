@@ -67,17 +67,17 @@ Number of students, post-docs and professors in the PPGE-USP per gender and year
 
 ```{r}
 pop <- read.table(here("data_raw", "pop_PPGE_2008-2019.csv"), sep=",",
-                   header=T, as.is=T)
+                   header=T, as.is=T) %>% 
+  mutate(total = total_F +total_M)
 pop2 <- pop %>%  
   pivot_longer(2:7, names_to=c("category","gender"), values_to="N",
                names_sep = "_") %>%
   pivot_wider(names_from = "gender", values_from="N") %>%
-  mutate(propFtotal = total_F/(total_F+total_M),
-         ratioFtotal = total_F/total_M,
+  mutate(propFtotal = F/total,
          propFcat = F/(F+M),
          ratioFcat = F/M) %>%
-  dplyr::select(year, category, total_F, total_M, propFtotal,
-                ratioFtotal,F,M, propFcat, ratioFcat)
+  dplyr::select(year, category, total, total_F, total_M, propFtotal,F,M, 
+                propFcat, ratioFcat)
 ```
 
 Over all years

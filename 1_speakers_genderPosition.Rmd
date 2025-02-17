@@ -138,7 +138,7 @@ Data form the population of speakers is the proporion of female in each academic
 
 Including the information of the PPGE community in the dataset
 ```{r}
-data <- data %>% left_join(pop2[,c(1:2,9:10)], 
+data <- data %>% left_join(pop2[,c(1:2,6,9:10)], 
                            by=c("year", "position_cat"="category")) %>%
   mutate(position_cat = fct_relevel(position_cat, "student","postdoc",
                                     "professor"))

@@ -127,7 +127,7 @@ ggplot(prs2, aes(x=x, y=predicted, ymin=conf.low, ymax=conf.high)) +
   xlab("Academic level")+ ylim(0,1)+
   theme(text = element_text(size=20),
         axis.text = element_text(size=18))
-ggsave(here("figures","FIG_S3_prop_female_speakers_model2.jpeg"), width=9, height = 6)  
+ggsave(here("figures","FIG_S2_prop_female_speakers_model2.jpeg"), width=9, height = 6)  
 ```
 
 # Extra analysis: speakers of the PPGE community
@@ -193,14 +193,33 @@ Solid line indicates the model's prediction.
 Dashed line indicates the proportions 50% of females for each proportion - relationship 1:1. 
 Dotted horizontal line indicates the 50% of speakers.
 
+```{r}
+datappge$y2 <- datappge$fem
+datappge$y2[datappge$position_cat=="postdoc" & datappge$fem==1] <- 1-0.02 
+datappge$y2[datappge$position_cat=="postdoc" & datappge$fem==0] <- 0+0.02 
+datappge$y2[datappge$position_cat=="professor" & datappge$fem==1] <- 1-0.04 
+datappge$y2[datappge$position_cat=="professor" & datappge$fem==0] <- 0+0.04 
+```
+
 ```{r, fig.height=6, fig.width=6}
 plot(ggpredict(mod0ppge, terms=c("propFcat[all]"))) +
     theme_cowplot() + ggtitle("") +
   geom_abline(slope=1, intercept = 0, linetype="dashed") +
   geom_hline(yintercept = 0.5, linetype="dotted")+
-  xlab("Proportion of female academics in the PPGE community") +
-  ylab("Proportion of female speakers")
-ggsave(here("figures", "FIG_S2_propFemalePPGE.jpeg"), width=9, height = 6)
+  xlab("Proportion of female academics") +
+  ylab("Proportion of female speakers") +
+  scale_y_continuous(breaks=c(0,0.25,0.5, 0.75,1))+
+  geom_point(data=datappge, aes(x=propFcat, y=y2, col=position_cat), size=4,
+             alpha=0.3)+
+  scale_color_manual(values=2:4, name="Academic level")+
+  theme(text = element_text(size=20),
+        axis.text = element_text(size=18),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size=14),
+        legend.position = "inside",
+        legend.background = element_rect(fill="gray95"),
+        legend.position.inside = c(0.75,0.25))
+ggsave(here("figures", "FIG_3_propFemalePPGE.jpeg"), width=8, height = 7)
 ```
 
 ## Model with academic level and the population-level gender ratio

@@ -185,6 +185,12 @@ plot(simulateResiduals(mod2ppge))
 ```
 
 
+```{r, warning=FALSE}
+r2(mod0ppge)
+r2(mod2ppge)
+```
+
+
 ## Model's Predictions
 
 ## Model with only the population-level proportion of females

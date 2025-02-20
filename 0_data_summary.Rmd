@@ -69,6 +69,9 @@ Number of students, post-docs and professors in the PPGE-USP per gender and year
 pop <- read.table(here("data_raw", "pop_PPGE_2008-2019.csv"), sep=",",
                    header=T, as.is=T) %>% 
   mutate(total = total_F +total_M)
+pop.year <- pop %>% mutate(propFyear = total_F/(total_M+total_F)) %>%
+  dplyr::select(year, propFyear)
+
 pop2 <- pop %>%  
   pivot_longer(2:7, names_to=c("category","gender"), values_to="N",
                names_sep = "_") %>%
@@ -151,6 +154,10 @@ data_p$position_cat <- fct_relevel(data_p$position_cat, "student",
 ```
 
 Excluding talks from non-academic professionals.  N = `r dim(data_p)[1]`.
+```{r}
+data_p %>% tabyl(position_cat)
+```
+
 
 ```{r, echo=F}
 data_p %>% tabyl(position_cat, gender) %>% adorn_percentages("row") %>%

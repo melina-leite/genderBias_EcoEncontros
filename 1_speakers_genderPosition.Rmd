@@ -45,7 +45,7 @@ data$fem[data$gender == "M"] <- 0
 ```
 
 
-# Modeling
+# Modeling all data
 
 Proportions of female speakers by academic level, before and after affirmative actions.
 
@@ -130,9 +130,9 @@ ggplot(prs2, aes(x=x, y=predicted, ymin=conf.low, ymax=conf.high)) +
 ggsave(here("figures","FIG_S2_prop_female_speakers_model2.jpeg"), width=9, height = 6)  
 ```
 
-# Extra analysis: speakers of the PPGE community
+# Modeling only speakers from the PPGE community
 
-Subset analysis with only speakers of the PPGE community in order to compare the proportion of female speakers with the proportion of female in the population source.
+Subset analysis with only speakers from the PPGE community in order to compare the proportion of female speakers with the proportion of female in the population source.
 
 Data form the population of speakers is the proporion of female in each academic level and each year in the PPGE community.
 

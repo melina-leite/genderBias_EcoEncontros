@@ -177,7 +177,7 @@ kable(AICtab(mod0ppge, mod1ppge, mod2ppge, mod3ppge, mnullppge,
 
 
 
-Residual diagnostic of 2 the best-fitting models.
+Residual diagnostic of the first 2 best-fitting models.
 
 ```{r}
 plot(simulateResiduals(mod0ppge))

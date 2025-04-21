@@ -212,7 +212,7 @@ dp$pc2 <- pca1$ind$coord[,2]
 m0 <- glmmTMB(audience_n ~ 1 + affirm_action + (1|year), data=dp, family=nbinom2)
 m1 <- glmmTMB(audience_n ~ gender + affirm_action +(1|year), data=dp,
               family=nbinom2)
-m2 <- glmmTMB(audience_n ~ pc1 + + affirm_action + (1|year), data=dp,
+m2 <- glmmTMB(audience_n ~ pc1  + affirm_action + (1|year), data=dp,
               family=nbinom2)
 m3 <- glmmTMB(audience_n ~ gender + pc1 + affirm_action + (1|year), 
               data=dp, family=nbinom2)
@@ -236,9 +236,16 @@ plot(simulateResiduals(m4))
 
 ## Model results
 
+
 ```{r echo=TRUE}
 summary(m3)
-performance::r2(m3)
+```
+
+To calculate the R2 we used a negative binomial GLM without the year as random effect given problems with the function `r2` in package peformance. Given that the random intercepts have almost zero variance, the model without the random intercept didn't  change the model's coefficients (neither the AIC and the model's ranking results):
+```{r echo=TRUE}
+m3b <- glm.nb(audience_n ~ gender + pc1 + affirm_action, 
+              data=dp)
+performance::r2(m3b)
 ```
 
 We used the first PCA axis as predictors together with gender to explain the professor's audience, and found that, as expected, audience increases with productivity index (first PCA axis) but female professors still presented on average audience *1.4* times smaller than male professors.
@@ -260,6 +267,18 @@ ggplot(my3, aes(x=x, y=predicted, col=group)) +
 ```{r}
 my3 <- ggpredict(m3, terms=c("gender"))
 plot(my3)
+```
+
+Second best-fitting model
+```{r}
+summary(m4)
+```
+
+
+```{r}
+m4b <- glm.nb(audience_n ~ gender * pc1 + affirm_action, 
+              data=dp)
+performance::r2(m4b)
 ```
 
 
@@ -334,7 +353,7 @@ ggsave("figures/FIG_4_audience.jpeg", width=10, height = 9)
 ```
 
 
-<!--T
+<!---
 ```{r, echo=F, eval=F}
 TEST
 p1alt <- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
@@ -366,7 +385,7 @@ f2 + ggtitle("") + labs(tag="")+
                0.49, 0.5, 1.03, 1.14)
 ```
 
-
+--->
 
 
 

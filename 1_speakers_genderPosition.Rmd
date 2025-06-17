@@ -90,13 +90,13 @@ my4 <- ggpredict(mod4, terms=c("position_cat","affirm_action"))
 ```
 
 
-```{r fig prop, echo=F}
+```{r fig2 prop, echo=F}
 suma <- data %>% count(position_cat, affirm_action,fem) %>%
   mutate(position_cat = fct_relevel(position_cat, "student", "postdoc", "professor"))
 prs <- as.data.frame(my4)
 
 ggplot(suma, aes(x = position_cat, y = fem,col = affirm_action))+
-  geom_point(aes(size=n), position = position_dodge(0.6), alpha = 0.2, show_guides = F) +
+  geom_point(aes(size=n), position = position_dodge(0.6), alpha = 0.7, show_guides = F) +
   scale_size(range = c(1,10), breaks = c(3,10,20,60)) +
   geom_pointrange(data = prs, aes(x = x, y = predicted, col = group,
                                 ymax = conf.high, ymin = conf.low), 
@@ -207,17 +207,21 @@ datappge$y2[datappge$position_cat=="professor" & datappge$fem==1] <- 1-0.04
 datappge$y2[datappge$position_cat=="professor" & datappge$fem==0] <- 0+0.04 
 ```
 
-```{r, fig.height=6, fig.width=6}
+
+```{r fig3, fig.height=6, fig.width=6}
 plot(ggpredict(mod0ppge, terms=c("propFcat[all]"))) +
-    theme_cowplot() + ggtitle("") +
+  theme_cowplot() + ggtitle("") +
   geom_abline(slope=1, intercept = 0, linetype="dashed") +
   geom_hline(yintercept = 0.5, linetype="dotted")+
   xlab("Proportion of female academics") +
   ylab("Proportion of female speakers") +
   scale_y_continuous(breaks=c(0,0.25,0.5, 0.75,1))+
-  geom_point(data=datappge, aes(x=propFcat, y=y2, col=position_cat), size=4,
-             alpha=0.3)+
-  scale_color_manual(values=2:4, name="Academic level")+
+  geom_jitter(data=datappge, aes(x=propFcat, y=y2, fill=position_cat, col=position_cat), size=4,
+              alpha=0.7, width = 0.02, height=0, shape=21,
+              inherit.aes = TRUE)+
+  scale_fill_manual(values=2:4, name="Academic level") +
+  scale_color_manual(values= rep("black",3), name="Academic level") +
+  guides(color = "none", fill=guide_legend(order = 2))+
   theme(text = element_text(size=20),
         axis.text = element_text(size=18),
         legend.title = element_text(size=15),
@@ -227,6 +231,7 @@ plot(ggpredict(mod0ppge, terms=c("propFcat[all]"))) +
         legend.position.inside = c(0.75,0.25))
 ggsave(here("figures", "FIG_3_propFemalePPGE.jpeg"), width=8, height = 7)
 ```
+
 
 ## Model with academic level and the population-level gender ratio
 

@@ -203,8 +203,10 @@ fig2
 fig1 + labs(tag = "a)") +
   fig2 + labs(tag = "b)") +
   plot_layout(widths = c(0.4,1), guides = "collect")
-ggsave(here("figures", "FIG_1_numberSpeakers_position_year.jpeg"), units="in", 
-       width=14, height=6, dpi=300)
+ggsave(here("figures", "FIG_1_numberSpeakers_position_year.png"), units="in", 
+       width=14, height=6, dpi=600)
+ggsave(here("figures", "FIG_1_numberSpeakers_position_year.pdf"), units="in", 
+       width=14, height=6, dpi=600)
 ```
 
 

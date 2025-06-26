@@ -312,7 +312,7 @@ props$label <- NA
 props$label[1:20] <- props$word[1:20]
 ```
 
-```{r, echo=F}
+```{r fig_5, echo=F}
 ggplot(props, aes(x=proportion_M,, y=proportion_F,
        color=abs.dif.p)) + 
   geom_abline(color = "gray40", lty = 2) +
@@ -330,7 +330,8 @@ ggplot(props, aes(x=proportion_M,, y=proportion_F,
                        )  +
   theme(legend.justification = c(1, -0.1), legend.position = c(1, 0))
  # geom_smooth(method="lm")
-ggsave("figures/FIG_5_wordFreq.jpg", height = 7, width=9)
+ggsave("figures/FIG_5_wordFreq.png", height = 7, width=9, dpi=600)
+ggsave("figures/FIG_5_wordFreq.pdf", height = 7, width=9)
 ```
 
 

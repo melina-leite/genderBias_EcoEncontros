@@ -108,7 +108,10 @@ ggplot(suma, aes(x = position_cat, y = fem,col = affirm_action))+
   xlab("Academic level") +
   theme(text = element_text(size=20),
         axis.text = element_text(size=18))
-ggsave(here("figures", "FIG_2_prop_female_speakers_model.jpeg"), width=9, height = 6)  
+ggsave(here("figures", "FIG_2_prop_female_speakers_model.png"), width=9, dpi=600,
+       height = 6)
+ggsave(here("figures", "FIG_2_prop_female_speakers_model.pdf"), width=9, height = 6)  
+
 ```
 
 ```{r}
@@ -127,7 +130,7 @@ ggplot(prs2, aes(x=x, y=predicted, ymin=conf.low, ymax=conf.high)) +
   xlab("Academic level")+ ylim(0,1)+
   theme(text = element_text(size=20),
         axis.text = element_text(size=18))
-ggsave(here("figures","FIG_S2_prop_female_speakers_model2.jpeg"), width=9, height = 6)  
+ggsave(here("figures","FIG_S2_prop_female_speakers_model2.jpeg"), width=9, height = 6) 
 ```
 
 # Modeling only speakers from the PPGE community
@@ -229,7 +232,8 @@ plot(ggpredict(mod0ppge, terms=c("propFcat[all]"))) +
         legend.position = "inside",
         legend.background = element_rect(fill="gray95"),
         legend.position.inside = c(0.75,0.25))
-ggsave(here("figures", "FIG_3_propFemalePPGE.jpeg"), width=8, height = 7)
+ggsave(here("figures", "FIG_3_propFemalePPGE.png"), width=8, height = 7, dpi=600)
+ggsave(here("figures", "FIG_3_propFemalePPGE.pdf"), width=8, height = 7)
 ```
 
 

@@ -296,7 +296,7 @@ ggplot(my4, aes(x=x, y=predicted, col=group)) +
 #ggsave("figures/audience_professor.jpeg", width=9, height = 6)  
 ```
 
-# Figure 3 audience
+# Figure 4 audience
 
 ```{r,echo=F, fig.height=9, fig.width=9}
 prs <- as.data.frame(myg11) %>% rename(affirm_action = facet,
@@ -349,7 +349,8 @@ p1<- fviz_pca_biplot(pca1, col.ind = dp$gender, addEllipses=TRUE,
         plot.title = element_text(size=12, vjust=2, hjust=0.5))
 
 f1/(p1+f2) +plot_layout(guides="collect", heights = c(0.9,1))
-ggsave("figures/FIG_4_audience.jpeg", width=10, height = 9)  
+ggsave("figures/FIG_4_audience.png", width=10, height = 9, dpi=600)
+ggsave("figures/FIG_4_audience.pdf", width=10, height = 9)  
 ```
 
 
